@@ -1,71 +1,110 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_naver_login/interface/types/naver_login_result.dart';
 import 'package:flutter_naver_login/interface/types/naver_login_status.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_naver_login/flutter_naver_login.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final auth.FirebaseAuth _auth = auth.FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // 현재 유저 정보 가져오기
-  User? get user => _auth.currentUser;
+  // 인증 상태 스트림 (주로 구글/파이어베이스용)
+  Stream<auth.User?> get userStream => _auth.authStateChanges();
 
-  // 1. 구글 로그인 로직
-  Future<UserCredential?> signInWithGoogle() async {
+  // Firestore 저장 로직 (에러 발생 시에도 중단되지 않도록 수정)
+  Future<void> _saveUserToFirestore({
+    required String uid,
+    String? email,
+    String? displayName,
+    String? photoUrl,
+    required String provider,
+  }) async {
     try {
-      // 구글 로그인 팝업 호출
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
-
-      // 구글 인증 정보 획득
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      // 파이어베이스용 크리덴셜 생성
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      // 파이어베이스 로그인 실행
-      return await _auth.signInWithCredential(credential);
+      await _db.collection('users').doc(uid).set({
+        'uid': uid,
+        'email': email ?? '',
+        'displayName': displayName ?? '사용자',
+        'photoUrl': photoUrl ?? '',
+        'provider': provider,
+        'lastLogin': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      print("DEBUG: Firestore 저장 성공 ($provider)");
     } catch (e) {
-      print("구글 로그인 에러: $e");
-      return null;
+      // 에러가 나더라도 로그만 찍고 프로세스를 멈추지 않음
+      print("DEBUG: Firestore 권한 부족 또는 에러 발생(무시하고 진행): $e");
     }
   }
 
-  // 2. 네이버 로그인 로직
-  // *참고: 네이버는 파이어베이스와 직접 연동되지 않으므로, 로그인 후 정보를 받아오는 방식입니다.*
+  // 구글 로그인
+  Future<auth.UserCredential?> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final auth.OAuthCredential credential = auth.GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken, idToken: googleAuth.idToken,
+      );
+      final userCredential = await _auth.signInWithCredential(credential);
+      if (userCredential.user != null) {
+        await _saveUserToFirestore(
+          uid: userCredential.user!.uid,
+          email: userCredential.user!.email,
+          displayName: userCredential.user!.displayName,
+          photoUrl: userCredential.user!.photoURL,
+          provider: 'google',
+        );
+      }
+      return userCredential;
+    } catch (e) { return null; }
+  }
+
+  // 네이버 로그인
   Future<NaverLoginResult?> signInWithNaver() async {
     try {
-      // 네이버 로그인 실행
       final NaverLoginResult result = await FlutterNaverLogin.logIn();
-
       if (result.status == NaverLoginStatus.loggedIn) {
-        print("네이버 로그인 성공: ${result.account?.nickname}");
-
-        // [백엔드 팁] 파이어베이스 유저로 등록하고 싶다면:
-        // 여기서 받아온 result.account.email을 이용해
-        // 파이어베이스 익명 로그인이나 커스텀 토큰 처리를 추가할 수 있습니다.
-
+        await _saveUserToFirestore(
+          uid: "naver_${result.account?.id}",
+          email: result.account?.email,
+          displayName: result.account?.nickname,
+          photoUrl: result.account?.profileImage,
+          provider: 'naver',
+        );
         return result;
       }
       return null;
-    } catch (e) {
-      print("네이버 로그인 에러: $e");
-      return null;
-    }
+    } catch (e) { return null; }
   }
 
-  // 3. 로그아웃 (구글, 네이버 모두 세션 해제)
-  Future<void> signOut() async {
+  // 카카오 로그인
+  Future<kakao.User?> signInWithKakao() async {
     try {
-      await _googleSignIn.signOut();      // 구글 세션 해제
-      await FlutterNaverLogin.logOut();    // 네이버 세션 해제
-      await _auth.signOut();              // 파이어베이스 세션 해제
-    } catch (e) {
-      print("로그아웃 에러: $e");
-    }
+      bool isInstalled = await kakao.isKakaoTalkInstalled();
+      if (isInstalled) {
+        await kakao.UserApi.instance.loginWithKakaoTalk();
+      } else {
+        await kakao.UserApi.instance.loginWithKakaoAccount();
+      }
+      final kakaoUser = await kakao.UserApi.instance.me();
+      await _saveUserToFirestore(
+        uid: "kakao_${kakaoUser.id}",
+        email: kakaoUser.kakaoAccount?.email,
+        displayName: kakaoUser.kakaoAccount?.profile?.nickname,
+        photoUrl: kakaoUser.kakaoAccount?.profile?.thumbnailImageUrl,
+        provider: 'kakao',
+      );
+      return kakaoUser;
+    } catch (e) { return null; }
+  }
+
+  // 통합 로그아웃
+  Future<void> signOut() async {
+    await _googleSignIn.signOut();
+    await FlutterNaverLogin.logOut();
+    try { await kakao.UserApi.instance.logout(); } catch (_) {}
+    await _auth.signOut();
   }
 }

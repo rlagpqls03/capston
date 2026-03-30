@@ -3,6 +3,7 @@
 
     <queries>
         <package android:name="com.nhn.android.search" />
+        <package android:name="com.kakao.sdk.talk" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.BROWSABLE" />
@@ -18,7 +19,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
-        android:label="Senior Platform" android:name="${applicationName}"
+        android:label="Senior Platform"
+        android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
         <meta-data
@@ -40,6 +42,16 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <activity android:name="com.kakao.sdk.flutter.AuthCodeCustomTabsActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="kakao9afedfa75e5eda578ba61766640dbee9" android:host="oauth" />
             </intent-filter>
         </activity>
 

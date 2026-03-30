@@ -55,6 +55,7 @@ dependencies:
   geocoding: ^3.0.0
   google_maps_flutter: ^2.10.0
   flutter_local_notifications: ^18.0.1
+  kakao_flutter_sdk_user: ^1.10.0
 
 dev_dependencies:
   flutter_test:
