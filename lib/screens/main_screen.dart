@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import 'exercise_screen.dart';
+import 'welfare_center_screen.dart';
+import 'job_screen.dart';
+import 'health_record_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final String? socialId;
@@ -110,7 +114,6 @@ class _MainScreenState extends State<MainScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 상단 인사
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -145,7 +148,6 @@ class _MainScreenState extends State<MainScreen> {
           ),
           const SizedBox(height: 20),
 
-          // 오늘의 걷기 목표 카드
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -199,7 +201,6 @@ class _MainScreenState extends State<MainScreen> {
 
           const SizedBox(height: 16),
 
-          // 내 포인트 카드
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -260,7 +261,6 @@ class _MainScreenState extends State<MainScreen> {
 
           const SizedBox(height: 24),
 
-          // 빠른 메뉴 2x2
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
@@ -276,9 +276,7 @@ class _MainScreenState extends State<MainScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const ExerciseScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const ExerciseScreen()),
                   );
                 },
               ),
@@ -289,9 +287,7 @@ class _MainScreenState extends State<MainScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const WelfareCenterScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const WelfareCenterScreen()),
                   );
                 },
               ),
@@ -302,9 +298,7 @@ class _MainScreenState extends State<MainScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const JobScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const JobScreen()),
                   );
                 },
               ),
@@ -315,9 +309,7 @@ class _MainScreenState extends State<MainScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const HealthRecordScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const HealthRecordScreen()),
                   );
                 },
               ),
@@ -494,192 +486,6 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ExerciseTabContent extends StatelessWidget {
-  final String title;
-  final List<String> items;
-
-  const _ExerciseTabContent({
-    required this.title,
-    required this.items,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.grey.shade50,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...items.map(
-                (item) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.play_circle_fill, color: Colors.green, size: 32),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      item,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, color: Colors.grey),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ExerciseScreen extends StatelessWidget {
-  const ExerciseScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            "운동 시작",
-            style: TextStyle(
-              color: Colors.green,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          backgroundColor: Colors.white,
-          iconTheme: const IconThemeData(color: Colors.black87),
-          bottom: const TabBar(
-            labelColor: Colors.green,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.green,
-            tabs: [
-              Tab(text: "스트레칭"),
-              Tab(text: "걷기 운동"),
-              Tab(text: "난이도별"),
-            ],
-          ),
-        ),
-        body: const TabBarView(
-          children: [
-            _ExerciseTabContent(
-              title: "스트레칭 운동",
-              items: [
-                "목과 어깨 스트레칭",
-                "허리 풀기 운동",
-                "무릎 관절 스트레칭",
-              ],
-            ),
-            _ExerciseTabContent(
-              title: "걷기 운동",
-              items: [
-                "실내 걷기 운동",
-                "바른 자세 걷기",
-                "10분 걷기 챌린지",
-              ],
-            ),
-            _ExerciseTabContent(
-              title: "난이도별 운동",
-              items: [
-                "초급 운동 프로그램",
-                "중급 운동 프로그램",
-                "고급 운동 프로그램",
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class WelfareCenterScreen extends StatelessWidget {
-  const WelfareCenterScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("복지관 찾기"),
-        backgroundColor: Colors.white,
-      ),
-      body: const Center(
-        child: Text(
-          "복지관 목록/지도 기능이 들어갈 화면입니다.",
-          style: TextStyle(fontSize: 20),
-        ),
-      ),
-    );
-  }
-}
-
-class JobScreen extends StatelessWidget {
-  const JobScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("일자리 찾기"),
-        backgroundColor: Colors.white,
-      ),
-      body: const Center(
-        child: Text(
-          "일자리 정보와 사이트 연동 기능이 들어갈 화면입니다.",
-          style: TextStyle(fontSize: 20),
-        ),
-      ),
-    );
-  }
-}
-
-class HealthRecordScreen extends StatelessWidget {
-  const HealthRecordScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("건강 기록"),
-        backgroundColor: Colors.white,
-      ),
-      body: const Center(
-        child: Text(
-          "건강 기록 기능이 들어갈 화면입니다.",
-          style: TextStyle(fontSize: 20),
         ),
       ),
     );
