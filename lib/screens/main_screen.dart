@@ -19,14 +19,16 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   String userName = "사용자";
+  String userRole = "";
+  String connectionCode = "";
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+    _loadUserProfile();
   }
 
-  Future<void> _loadUserName() async {
+  Future<void> _loadUserProfile() async {
     if (widget.socialId == null) return;
 
     try {
@@ -38,7 +40,9 @@ class _MainScreenState extends State<MainScreen> {
       if (doc.exists) {
         final data = doc.data();
         setState(() {
-          userName = data?['displayName'] ?? "사용자";
+          userName = data?['displayName'] ?? data?['name'] ?? "사용자";
+          userRole = data?['role'] ?? "";
+          connectionCode = data?['connectionCode'] ?? "";
         });
       }
     } catch (e) {
@@ -51,6 +55,7 @@ class _MainScreenState extends State<MainScreen> {
     final List<Widget> pages = [
       _buildHomeTab(),
       _buildActivityTab(),
+      JobScreen(socialId: widget.socialId),
       _buildProfileTab(),
     ];
 
@@ -97,7 +102,8 @@ class _MainScreenState extends State<MainScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "홈"),
           BottomNavigationBarItem(icon: Icon(Icons.directions_run), label: "활동"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "내정보"),
+          BottomNavigationBarItem(icon: Icon(Icons.work_outline), label: "구직"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "내 정보"),
         ],
       ),
     );
@@ -298,7 +304,9 @@ class _MainScreenState extends State<MainScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const JobScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => JobScreen(socialId: widget.socialId),
+                    ),
                   );
                 },
               ),
@@ -350,6 +358,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildProfileTab() {
+    final bool hasConnectionCode = connectionCode.trim().isNotEmpty;
+    final bool isSenior = userRole == "어르신";
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -360,6 +371,41 @@ class _MainScreenState extends State<MainScreen> {
             title: "내 프로필",
             subtitle: "이름, 관심 분야, 활동 정보를 확인할 수 있어요.",
             onTap: () {},
+          ),
+          _buildInfoCard(
+            icon: Icons.password_rounded,
+            title: isSenior ? "내 연결 코드" : "등록한 연결 코드",
+            subtitle: hasConnectionCode
+                ? "현재 코드: $connectionCode"
+                : "아직 등록된 연결 코드가 없어요.",
+            onTap: hasConnectionCode
+                ? () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        title: const Text("연결 코드"),
+                        content: Text(
+                          connectionCode,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 36,
+                            letterSpacing: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("닫기"),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                : null,
           ),
           _buildInfoCard(
             icon: Icons.history,
@@ -491,3 +537,4 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
+

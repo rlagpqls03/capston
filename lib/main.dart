@@ -5,6 +5,7 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/registration_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,19 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  Future<Widget> _buildHomeForSignedInUser(auth.User user) async {
+    final authService = AuthService();
+    final socialId = await authService.resolveSocialIdForCurrentUser(user);
+
+    if (socialId == null) return LoginScreen();
+
+    final isIncomplete = await authService.isProfileIncomplete(socialId);
+    if (isIncomplete) {
+      return RegistrationScreen(socialId: socialId);
+    }
+    return MainScreen(socialId: socialId);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -27,9 +41,32 @@ class MyApp extends StatelessWidget {
       home: StreamBuilder<auth.User?>(
         stream: AuthService().userStream,
         builder: (context, snapshot) {
-          // 구글 로그인 기록이 있으면 즉시 메인으로 이동
-          if (snapshot.hasData) return const MainScreen();
-          return LoginScreen();
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(color: Colors.green),
+              ),
+            );
+          }
+
+          final user = snapshot.data;
+          if (user == null) return LoginScreen();
+
+          return FutureBuilder<Widget>(
+            future: _buildHomeForSignedInUser(user),
+            builder: (context, homeSnapshot) {
+              if (homeSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(
+                    child: CircularProgressIndicator(color: Colors.green),
+                  ),
+                );
+              }
+
+              if (homeSnapshot.hasData) return homeSnapshot.data!;
+              return LoginScreen();
+            },
+          );
         },
       ),
     );

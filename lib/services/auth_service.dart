@@ -18,8 +18,9 @@ class AuthService {
       if (!doc.exists) return true;
 
       Map<String, dynamic>? data = doc.data();
-      // role 필드가 채워져 있어야 가입 완료로 인정
-      return data?['role'] == null || data?['role'] == "";
+      final role = (data?['role'] ?? '').toString();
+      final phone = (data?['phone'] ?? '').toString();
+      return role.isEmpty || phone.isEmpty;
     } catch (e) {
       return true;
     }
@@ -28,6 +29,7 @@ class AuthService {
   // [핵심] 익명 UID 대신 socialId를 문서 이름으로 사용합니다.
   Future<void> _saveUserToFirestore({
     required String socialId, // 고정된 번호 (kakao_123 등)
+    required String authUid,
     String? email,
     String? displayName,
     String? photoUrl,
@@ -40,11 +42,30 @@ class AuthService {
         'displayName': displayName ?? '사용자',
         'photoUrl': photoUrl ?? '',
         'provider': provider,
+        'authUid': authUid,
         'lastLogin': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true)); // 기존 데이터 유지하며 업데이트
     } catch (e) {
       print("Firestore 저장 에러: $e");
     }
+  }
+
+  Future<String?> resolveSocialIdForCurrentUser(auth.User user) async {
+    if (!user.isAnonymous) return user.uid;
+
+    try {
+      final result = await _db
+          .collection('users')
+          .where('authUid', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+
+      if (result.docs.isNotEmpty) {
+        return result.docs.first.id;
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   // 1. 구글 로그인
@@ -62,6 +83,7 @@ class AuthService {
       if (user != null) {
         await _saveUserToFirestore(
           socialId: user.uid, // 구글은 UID가 고정되므로 그대로 사용
+          authUid: user.uid,
           email: user.email,
           displayName: user.displayName,
           photoUrl: user.photoURL,
@@ -81,8 +103,12 @@ class AuthService {
         String naverId = "naver_${result.account.id}"; // ID 고정
 
         await _auth.signInAnonymously(); // 통행증 발급
+        final authUid = _auth.currentUser?.uid ?? "";
+        if (authUid.isEmpty) return null;
+
         await _saveUserToFirestore(
           socialId: naverId,
+          authUid: authUid,
           email: result.account?.email,
           displayName: result.account?.nickname,
           photoUrl: result.account?.profileImage,
@@ -105,8 +131,12 @@ class AuthService {
       String kakaoId = "kakao_${kakaoUser.id}"; // ID 고정
 
       await _auth.signInAnonymously(); // 통행증 발급
+      final authUid = _auth.currentUser?.uid ?? "";
+      if (authUid.isEmpty) return null;
+
       await _saveUserToFirestore(
         socialId: kakaoId,
+        authUid: authUid,
         email: kakaoUser.kakaoAccount?.email,
         displayName: kakaoUser.kakaoAccount?.profile?.nickname,
         photoUrl: kakaoUser.kakaoAccount?.profile?.thumbnailImageUrl,

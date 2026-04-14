@@ -40,7 +40,7 @@ class LoginScreen extends StatelessWidget {
             MaterialPageRoute(
               builder: (_) => isIncomplete
                   ? RegistrationScreen(socialId: socialId!) // [에러 해결!] ! 추가
-                  : const MainScreen(),
+                  : MainScreen(socialId: socialId),
             ),
           );
         }
