@@ -1,7 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import '../services/job_board_service.dart';
 import 'location_picker_screen.dart';
+import '../theme/app_theme.dart';
+import '../utils/phone_utils.dart';
 
 class JobScreen extends StatefulWidget {
   final String? socialId;
@@ -80,7 +83,7 @@ class _JobScreenState extends State<JobScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Colors.green, width: 2),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
                   ),
                 ),
               ),
@@ -103,7 +106,7 @@ class _JobScreenState extends State<JobScreen> {
                         color: selected ? Colors.white : Colors.black87,
                       ),
                     ),
-                    selectedColor: Colors.green,
+                    selectedColor: AppColors.primary,
                     backgroundColor: Colors.grey.shade200,
                     onSelected: (_) => setState(() => _selectedCategory = category),
                   );
@@ -190,6 +193,11 @@ class _JobScreenState extends State<JobScreen> {
     return d.isEmpty ? b : "$b $d";
   }
 
+  double? _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
+  }
+
   void _showNeedLoginMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("로그인 후 구인글을 등록할 수 있어요.")),
@@ -221,7 +229,9 @@ class _JobScreenState extends State<JobScreen> {
   Future<void> _openPostForm({String? docId, Map<String, dynamic>? seed}) async {
     final titleController = TextEditingController(text: seed?["title"]?.toString() ?? "");
     final companyController = TextEditingController(text: seed?["company"]?.toString() ?? "");
-    String selectedLocationBase = seed?["locationBase"]?.toString() ?? seed?["location"]?.toString() ?? "";
+    final locationBaseController = TextEditingController(
+      text: seed?["locationBase"]?.toString() ?? seed?["location"]?.toString() ?? "",
+    );
     final locationDetailController = TextEditingController(text: seed?["locationDetail"]?.toString() ?? "");
     final dynamic seedLat = seed?["locationLat"];
     final dynamic seedLng = seed?["locationLng"];
@@ -232,6 +242,7 @@ class _JobScreenState extends State<JobScreen> {
     final descriptionController = TextEditingController(text: seed?["description"]?.toString() ?? "");
     String category = seed?["category"]?.toString() ?? "기타";
     final isEdit = docId != null;
+    bool isSaving = false;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -253,45 +264,31 @@ class _JobScreenState extends State<JobScreen> {
                     _formTextField(companyController, "기관/업체명"),
                     const Text("기관 위치", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              selectedLocationBase.isEmpty ? "지도 아이콘을 눌러 위치를 지정해 주세요." : selectedLocationBase,
-                              style: TextStyle(fontSize: 16, color: selectedLocationBase.isEmpty ? Colors.grey.shade600 : Colors.black87),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: "지도에서 위치 선택",
-                            onPressed: () async {
-                              final result = await Navigator.of(modalContext).push<LocationPickerResult>(
-                                MaterialPageRoute(
-                                  builder: (_) => LocationPickerScreen(
-                                    initialLat: selectedLat,
-                                    initialLng: selectedLng,
-                                    title: "기관 위치 선택",
-                                  ),
+                    TextField(
+                      controller: locationBaseController,
+                      decoration: _formDecoration("기관 위치 (지도 아이콘으로 지정/직접 수정)").copyWith(
+                        suffixIcon: IconButton(
+                          tooltip: "지도에서 위치 선택",
+                          onPressed: () async {
+                            final result = await Navigator.of(modalContext).push<LocationPickerResult>(
+                              MaterialPageRoute(
+                                builder: (_) => LocationPickerScreen(
+                                  initialLat: selectedLat,
+                                  initialLng: selectedLng,
+                                  title: "기관 위치 선택",
                                 ),
-                              );
-                              if (result != null) {
-                                setModalState(() {
-                                  selectedLocationBase = result.address;
-                                  selectedLat = result.latitude;
-                                  selectedLng = result.longitude;
-                                });
-                              }
-                            },
-                            icon: const Icon(Icons.location_on_rounded, color: Colors.green, size: 30),
-                          ),
-                        ],
+                              ),
+                            );
+                            if (result != null) {
+                              setModalState(() {
+                                locationBaseController.text = result.address;
+                                selectedLat = result.latitude;
+                                selectedLng = result.longitude;
+                              });
+                            }
+                          },
+                          icon: const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 30),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -323,6 +320,8 @@ class _JobScreenState extends State<JobScreen> {
                       height: 58,
                       child: ElevatedButton(
                         onPressed: () async {
+                          if (isSaving) return;
+                          setModalState(() => isSaving = true);
                           if (widget.socialId == null) {
                             Navigator.pop(modalContext);
                             _showNeedLoginMessage();
@@ -330,16 +329,17 @@ class _JobScreenState extends State<JobScreen> {
                           }
                           if (titleController.text.trim().isEmpty ||
                               companyController.text.trim().isEmpty ||
-                              selectedLocationBase.trim().isEmpty ||
+                              locationBaseController.text.trim().isEmpty ||
                               payController.text.trim().isEmpty ||
                               timeController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(modalContext).showSnackBar(
+                            ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("필수 항목을 입력해 주세요.")),
                             );
+                            setModalState(() => isSaving = false);
                             return;
                           }
 
-                          final fullLocation = _buildLocationText(selectedLocationBase, locationDetailController.text);
+                          final fullLocation = _buildLocationText(locationBaseController.text, locationDetailController.text);
                           try {
                             if (isEdit) {
                               await _jobBoardService.updateJobPost(
@@ -347,7 +347,7 @@ class _JobScreenState extends State<JobScreen> {
                                 title: titleController.text.trim(),
                                 company: companyController.text.trim(),
                                 location: fullLocation,
-                                locationBase: selectedLocationBase.trim(),
+                                locationBase: locationBaseController.text.trim(),
                                 locationDetail: locationDetailController.text.trim(),
                                 locationLat: selectedLat,
                                 locationLng: selectedLng,
@@ -362,7 +362,7 @@ class _JobScreenState extends State<JobScreen> {
                                 title: titleController.text.trim(),
                                 company: companyController.text.trim(),
                                 location: fullLocation,
-                                locationBase: selectedLocationBase.trim(),
+                                locationBase: locationBaseController.text.trim(),
                                 locationDetail: locationDetailController.text.trim(),
                                 locationLat: selectedLat,
                                 locationLng: selectedLng,
@@ -379,19 +379,32 @@ class _JobScreenState extends State<JobScreen> {
                               );
                             }
                           } catch (e) {
-                            ScaffoldMessenger.of(modalContext).showSnackBar(
+                            ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text("저장 실패: $e")),
                             );
+                          } finally {
+                            if (modalContext.mounted) {
+                              setModalState(() => isSaving = false);
+                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
-                        child: Text(
-                          isEdit ? "수정 완료" : "등록하기",
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-                        ),
+                        child: isSaving
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.8,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                isEdit ? "수정 완료" : "등록하기",
+                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                              ),
                       ),
                     ),
                   ],
@@ -416,7 +429,7 @@ class _JobScreenState extends State<JobScreen> {
       ),
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(12)),
-        borderSide: BorderSide(color: Colors.green, width: 2),
+        borderSide: BorderSide(color: AppColors.primary, width: 2),
       ),
     );
   }
@@ -463,12 +476,34 @@ class _JobScreenState extends State<JobScreen> {
               Text(data["title"]?.toString() ?? "", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
               const SizedBox(height: 14),
               _detailRow(Icons.business_outlined, data["company"]?.toString() ?? ""),
-              _detailRow(Icons.location_on_outlined, data["location"]?.toString() ?? ""),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.location_on_outlined, size: 24, color: AppColors.primaryDark),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _LocalizedAddressText(
+                        rawAddress: data["location"]?.toString() ?? "",
+                        latitude: _toDouble(data["locationLat"]),
+                        longitude: _toDouble(data["locationLng"]),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               _detailRow(Icons.payments_outlined, data["pay"]?.toString() ?? ""),
               _detailRow(Icons.schedule_outlined, data["time"]?.toString() ?? ""),
               _detailRow(Icons.person_outline, data["authorName"]?.toString() ?? ""),
               if (_currentUserRole == "어르신" || isMine)
-                _detailRow(Icons.call_outlined, data["recruiterPhone"]?.toString().isNotEmpty == true ? data["recruiterPhone"].toString() : "등록된 연락처 없음"),
+                _detailRow(
+                  Icons.call_outlined,
+                  data["recruiterPhone"]?.toString().isNotEmpty == true
+                      ? PhoneUtils.formatKoreanPhone(data["recruiterPhone"].toString())
+                      : "등록된 연락처 없음",
+                ),
               const SizedBox(height: 12),
               Text(data["description"]?.toString() ?? "", style: const TextStyle(fontSize: 18, height: 1.5)),
               const SizedBox(height: 20),
@@ -535,7 +570,7 @@ class _JobScreenState extends State<JobScreen> {
                       _openApplySheet(docId);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.primary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     child: const Text("지원하기", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
@@ -567,7 +602,7 @@ class _JobScreenState extends State<JobScreen> {
             children: [
               const Text("지원하기", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
-              Text("지원자: ${_currentUserName.isEmpty ? '사용자' : _currentUserName}", style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+              Text("지원자: ${_currentUserName.isEmpty ? '이름' : _currentUserName}", style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextField(controller: messageController, minLines: 2, maxLines: 4, decoration: _formDecoration("간단한 지원 메모 (선택)")),
               const SizedBox(height: 14),
@@ -591,7 +626,7 @@ class _JobScreenState extends State<JobScreen> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                   child: const Text("지원 완료", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
@@ -638,7 +673,7 @@ class _JobScreenState extends State<JobScreen> {
                           contentPadding: const EdgeInsets.symmetric(vertical: 4),
                           title: Text(data["applicantName"]?.toString() ?? "이름 없음", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                           subtitle: Text(
-                            "연락처: ${data["applicantPhone"] ?? "-"}\n메모: ${data["message"] ?? "-"}",
+                            "연락처: ${data["applicantPhone"]?.toString().isNotEmpty == true ? PhoneUtils.formatKoreanPhone(data["applicantPhone"].toString()) : "-"}\n메모: ${data["message"] ?? "-"}",
                             style: const TextStyle(fontSize: 16, height: 1.4),
                           ),
                         );
@@ -659,7 +694,7 @@ class _JobScreenState extends State<JobScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 24, color: Colors.green.shade700),
+          Icon(icon, size: 24, color: AppColors.primaryDark),
           const SizedBox(width: 8),
           Expanded(
             child: Text(text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
@@ -684,6 +719,11 @@ class _JobPostCard extends StatelessWidget {
     required this.onMenuSelect,
     required this.showManageMenu,
   });
+
+  static double? _toDoubleSafe(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -720,20 +760,50 @@ class _JobPostCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(data["company"]?.toString() ?? "", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(Icons.location_on_outlined, size: 18, color: AppColors.primaryDark),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _LocalizedAddressText(
+                      rawAddress: data["location"]?.toString() ?? "",
+                      latitude: _toDoubleSafe(data["locationLat"]),
+                      longitude: _toDoubleSafe(data["locationLng"]),
+                      style: const TextStyle(fontSize: 16, height: 1.35, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 6),
-              Text("${data["location"] ?? ""} · ${data["time"] ?? ""}", style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(Icons.schedule_outlined, size: 18, color: AppColors.primaryDark),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      data["time"]?.toString() ?? "",
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.green.shade50,
+                      color: AppColors.primarySoft,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       data["pay"]?.toString() ?? "",
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.green),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary),
                     ),
                   ),
                   const Spacer(),
@@ -747,3 +817,93 @@ class _JobPostCard extends StatelessWidget {
     );
   }
 }
+
+class _LocalizedAddressText extends StatefulWidget {
+  final String rawAddress;
+  final double? latitude;
+  final double? longitude;
+  final TextStyle style;
+
+  const _LocalizedAddressText({
+    required this.rawAddress,
+    required this.latitude,
+    required this.longitude,
+    required this.style,
+  });
+
+  @override
+  State<_LocalizedAddressText> createState() => _LocalizedAddressTextState();
+}
+
+class _LocalizedAddressTextState extends State<_LocalizedAddressText> {
+  late String _displayText;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayText = widget.rawAddress;
+    _resolveIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant _LocalizedAddressText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.rawAddress != widget.rawAddress ||
+        oldWidget.latitude != widget.latitude ||
+        oldWidget.longitude != widget.longitude) {
+      _displayText = widget.rawAddress;
+      _resolveIfNeeded();
+    }
+  }
+
+  bool _containsEnglish(String text) => RegExp(r'[A-Za-z]').hasMatch(text);
+
+  Future<void> _resolveIfNeeded() async {
+    if (!_containsEnglish(widget.rawAddress)) return;
+    final lat = widget.latitude;
+    final lng = widget.longitude;
+    if (lat == null || lng == null) {
+      if (!mounted) return;
+      setState(() => _displayText = "위치 정보가 등록되어 있습니다.");
+      return;
+    }
+
+    try {
+      await setLocaleIdentifier('ko_KR');
+      final marks = await placemarkFromCoordinates(lat, lng);
+      if (!mounted) return;
+
+      if (marks.isNotEmpty) {
+        final p = marks.first;
+        final text = [
+          p.administrativeArea,
+          p.subAdministrativeArea,
+          p.locality,
+          p.subLocality,
+          p.thoroughfare,
+          p.subThoroughfare,
+        ].where((e) => (e ?? '').trim().isNotEmpty).join(' ');
+        if (text.isNotEmpty && !_containsEnglish(text)) {
+          setState(() => _displayText = text);
+          return;
+        }
+      }
+
+      setState(() {
+        _displayText = "위도 ${lat.toStringAsFixed(5)}, 경도 ${lng.toStringAsFixed(5)}";
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _displayText = "위도 ${lat.toStringAsFixed(5)}, 경도 ${lng.toStringAsFixed(5)}";
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(_displayText, style: widget.style);
+  }
+}
+
+

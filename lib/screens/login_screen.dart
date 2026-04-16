@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../services/auth_service.dart';
+import '../theme/app_theme.dart';
 import 'registration_screen.dart';
 import 'main_screen.dart';
 
@@ -17,7 +18,7 @@ class LoginScreen extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(
-        child: CircularProgressIndicator(color: Colors.green),
+        child: CircularProgressIndicator(color: AppColors.primary),
       ),
     );
 
@@ -56,7 +57,7 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F7),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -67,10 +68,10 @@ class LoginScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(25),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: AppColors.primarySoft,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.park_rounded, size: 100, color: Colors.green),
+                child: const Icon(Icons.park_rounded, size: 100, color: AppColors.primary),
               ),
               const SizedBox(height: 24),
               const Text(
@@ -78,7 +79,7 @@ class LoginScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 48,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2E4D2E),
+                  color: AppColors.textMain,
                 ),
               ),
               const Spacer(flex: 2),

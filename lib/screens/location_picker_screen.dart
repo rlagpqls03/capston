@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
+import '../theme/app_theme.dart';
 
 class LocationPickerResult {
   final double latitude;
@@ -50,6 +51,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   Future<void> _resolveAddress(LatLng position) async {
     setState(() => _loading = true);
     try {
+      await setLocaleIdentifier('ko_KR');
       final placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
@@ -58,28 +60,30 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
       if (placemarks.isEmpty) {
         setState(() {
-          _address = "${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}";
+          _address = "위도 ${position.latitude.toStringAsFixed(5)}, 경도 ${position.longitude.toStringAsFixed(5)}";
         });
       } else {
         final p = placemarks.first;
         final text = [
           p.administrativeArea,
+          p.subAdministrativeArea,
           p.locality,
           p.subLocality,
           p.thoroughfare,
           p.subThoroughfare,
         ].where((e) => (e ?? '').trim().isNotEmpty).join(' ');
 
+        final containsEnglish = RegExp(r'[A-Za-z]').hasMatch(text);
         setState(() {
-          _address = text.isEmpty
-              ? "${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}"
+          _address = text.isEmpty || containsEnglish
+              ? "위도 ${position.latitude.toStringAsFixed(5)}, 경도 ${position.longitude.toStringAsFixed(5)}"
               : text;
         });
       }
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _address = "${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}";
+        _address = "위도 ${position.latitude.toStringAsFixed(5)}, 경도 ${position.longitude.toStringAsFixed(5)}";
       });
     } finally {
       if (mounted) {
@@ -148,7 +152,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                             );
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

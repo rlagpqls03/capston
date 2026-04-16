@@ -1,4 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/phone_utils.dart';
 
 class JobBoardService {
   JobBoardService({FirebaseFirestore? firestore})
@@ -20,9 +21,10 @@ class JobBoardService {
   Future<Map<String, String>> getUserProfile(String socialId) async {
     final userDoc = await _users.doc(socialId).get();
     final data = userDoc.data();
-    final name = (data?['name'] ?? data?['displayName'] ?? '사용자').toString();
+    final name = (data?['name'] ?? data?['displayName'] ?? '이름').toString();
     final role = (data?['role'] ?? '').toString();
-    final phone = (data?['phone'] ?? '').toString();
+    final phone = PhoneUtils.formatKoreanPhone((data?['phone'] ?? '').toString());
+
     return {
       'name': name,
       'role': role,
@@ -46,10 +48,10 @@ class JobBoardService {
   }) async {
     final profile = await getUserProfile(socialId);
     if (profile['role'] != '구인자') {
-      throw Exception('구인자만 구인글을 등록할 수 있습니다.');
+      throw Exception('구인자만 구인글을 등록할 수 있어요.');
     }
     if ((profile['phone'] ?? '').trim().isEmpty) {
-      throw Exception('휴대폰 번호를 등록한 뒤 구인글을 작성할 수 있습니다.');
+      throw Exception('휴대폰 번호를 등록한 뒤 구인글을 작성해 주세요.');
     }
 
     await _jobs.add({
@@ -108,9 +110,7 @@ class JobBoardService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> streamApplications(String jobId) {
-    return _jobApplications
-        .where('jobId', isEqualTo: jobId)
-        .snapshots();
+    return _jobApplications.where('jobId', isEqualTo: jobId).snapshots();
   }
 
   Future<void> applyToJob({

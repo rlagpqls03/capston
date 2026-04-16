@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class ExerciseScreen extends StatelessWidget {
   const ExerciseScreen({super.key});
@@ -12,16 +13,16 @@ class ExerciseScreen extends StatelessWidget {
           title: const Text(
             "운동 시작",
             style: TextStyle(
-              color: Colors.green,
+              color: AppColors.textMain,
               fontWeight: FontWeight.bold,
             ),
           ),
           backgroundColor: Colors.white,
           iconTheme: const IconThemeData(color: Colors.black87),
           bottom: const TabBar(
-            labelColor: Colors.green,
+            labelColor: AppColors.primary,
             unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.green,
+            indicatorColor: AppColors.primary,
             tabs: [
               Tab(text: "스트레칭"),
               Tab(text: "걷기 운동"),
@@ -104,7 +105,7 @@ class _ExerciseTabContent extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.play_circle_fill, color: Colors.green, size: 32),
+                  const Icon(Icons.play_circle_fill, color: AppColors.primary, size: 32),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(

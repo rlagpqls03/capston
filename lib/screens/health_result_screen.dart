@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 class HealthResultScreen extends StatelessWidget {
   final Map<String, dynamic> symptom;
@@ -14,7 +15,7 @@ class HealthResultScreen extends StatelessWidget {
         title: const Text(
           "추천 결과",
           style: TextStyle(
-            color: Colors.green,
+            color: AppColors.textMain,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -32,7 +33,7 @@ class HealthResultScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF7E8),
+                  color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Column(
@@ -43,7 +44,7 @@ class HealthResultScreen extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF2E7D32),
+                        color: AppColors.primaryDark,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -63,7 +64,7 @@ class HealthResultScreen extends StatelessWidget {
                 title: "추천 진료과",
                 child: Row(
                   children: [
-                    const Icon(Icons.local_hospital, color: Colors.green, size: 30),
+                    const Icon(Icons.local_hospital, color: AppColors.primary, size: 30),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -91,7 +92,7 @@ class HealthResultScreen extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.play_circle_fill, color: Colors.green, size: 28),
+                          const Icon(Icons.play_circle_fill, color: AppColors.primary, size: 28),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -114,7 +115,7 @@ class HealthResultScreen extends StatelessWidget {
                 height: 56,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),

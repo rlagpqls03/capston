@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'health_result_screen.dart';
+import '../theme/app_theme.dart';
 
 class HealthRecordScreen extends StatefulWidget {
   const HealthRecordScreen({super.key});
@@ -10,6 +11,12 @@ class HealthRecordScreen extends StatefulWidget {
 
 class _HealthRecordScreenState extends State<HealthRecordScreen> {
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   final List<Map<String, dynamic>> symptomData = [
     {
@@ -128,7 +135,7 @@ class _HealthRecordScreenState extends State<HealthRecordScreen> {
         title: const Text(
           "건강 기록",
           style: TextStyle(
-            color: Colors.green,
+            color: AppColors.textMain,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -173,7 +180,7 @@ class _HealthRecordScreenState extends State<HealthRecordScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     height: 1.5,
-                    color: Color(0xFF2E7D32),
+                    color: AppColors.primaryDark,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -186,7 +193,7 @@ class _HealthRecordScreenState extends State<HealthRecordScreen> {
                 decoration: InputDecoration(
                   hintText: "예: 허리, 요통, 무릎통증, 소화불량",
                   hintStyle: const TextStyle(fontSize: 17),
-                  prefixIcon: const Icon(Icons.search, color: Colors.green),
+                  prefixIcon: const Icon(Icons.search, color: AppColors.primary),
                   filled: true,
                   fillColor: Colors.white,
                   contentPadding: const EdgeInsets.symmetric(vertical: 18),
@@ -258,7 +265,7 @@ class _HealthRecordScreenState extends State<HealthRecordScreen> {
                             Icon(
                               symptom["icon"] as IconData,
                               size: 42,
-                              color: Colors.green,
+                              color: AppColors.primary,
                             ),
                             const SizedBox(height: 14),
                             Text(

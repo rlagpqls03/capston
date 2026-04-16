@@ -1,8 +1,58 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
+import '../theme/app_theme.dart';
 import 'main_screen.dart';
+
+class KoreanPhoneNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final limited = digits.length > 11 ? digits.substring(0, 11) : digits;
+    final formatted = _format(limited);
+
+    final selectionDigits =
+        newValue.selection.baseOffset.clamp(0, newValue.text.length).toInt();
+    final digitsBeforeCursor = newValue.text
+        .substring(0, selectionDigits)
+        .replaceAll(RegExp(r'\D'), '')
+        .length
+        .clamp(0, limited.length)
+        .toInt();
+    final cursorOffset = _cursorOffsetForDigits(formatted, digitsBeforeCursor);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: cursorOffset),
+    );
+  }
+
+  static int _cursorOffsetForDigits(String formatted, int digitsCount) {
+    if (digitsCount <= 0) return 0;
+    var seen = 0;
+    for (var i = 0; i < formatted.length; i++) {
+      if (RegExp(r'\d').hasMatch(formatted[i])) {
+        seen++;
+        if (seen == digitsCount) {
+          return i + 1;
+        }
+      }
+    }
+    return formatted.length;
+  }
+
+  static String _format(String digits) {
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 7) {
+      return '${digits.substring(0, 3)}-${digits.substring(3)}';
+    }
+    return '${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}';
+  }
+}
 
 class RegistrationScreen extends StatefulWidget {
   // [수정] 로그인 화면에서 넘겨주는 고유 ID를 저장할 변수
@@ -38,6 +88,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _generatedCode = (Random().nextInt(900000) + 100000).toString();
   }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
   void _dismissKeyboard() {
     final currentFocus = FocusScope.of(context);
     if (!currentFocus.hasPrimaryFocus) {
@@ -63,7 +121,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Colors.green),
+        child: CircularProgressIndicator(color: AppColors.primary),
       ),
     );
 
@@ -101,9 +159,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: _currentPage > 0
             ? IconButton(
@@ -124,7 +182,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             value: (_currentPage + 1) / (_totalSteps + 1),
             minHeight: 10,
             backgroundColor: Colors.grey.shade200,
-            color: Colors.green,
+            color: AppColors.primary,
           ),
         ),
       ),
@@ -154,6 +212,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     return '${date.year}-$month-$day';
   }
 
+  String _phoneDigits(String value) => value.replaceAll(RegExp(r'\D'), '');
+
   // --- 가독성을 위해 분리된 UI 위젯들 ---
   Widget _buildNameStep() {
     return _buildStepLayout(
@@ -175,85 +235,249 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final int selectedYear = _birthDate.year;
     final int selectedMonth = _birthDate.month;
     final int selectedDay = _birthDate.day;
+    final dateText =
+        '$selectedYear.${selectedMonth.toString().padLeft(2, '0')}.${selectedDay.toString().padLeft(2, '0')}';
 
     return _buildStepLayout(
-      question: "생년월일을\n선택해 주세요.",
+      question: "생년월일을\n입력해 주세요.",
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 18),
             decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.green.shade200),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.border),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
             child: Text(
-              "$selectedYear년 $selectedMonth월 $selectedDay일",
+              dateText,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
+                fontSize: 36,
+                fontWeight: FontWeight.w800,
                 color: Colors.black87,
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          _buildDateStepper(
-            label: "년",
-            valueText: "$selectedYear",
-            onDecrement: () {
-              if (selectedYear <= 1900) return;
-              final nextYear = selectedYear - 1;
-              final clampedDay = _birthDate.day.clamp(1, DateUtils.getDaysInMonth(nextYear, _birthDate.month));
-              setState(() => _birthDate = DateTime(nextYear, _birthDate.month, clampedDay));
-            },
-            onIncrement: () {
-              final currentYear = DateTime.now().year;
-              if (selectedYear >= currentYear) return;
-              final nextYear = selectedYear + 1;
-              final clampedDay = _birthDate.day.clamp(1, DateUtils.getDaysInMonth(nextYear, _birthDate.month));
-              setState(() => _birthDate = DateTime(nextYear, _birthDate.month, clampedDay));
-            },
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildBirthSelectCard(
+                  label: '년',
+                  value: '$selectedYear',
+                  onTap: () {
+                    final currentYear = DateTime.now().year;
+                    _showBirthPickerSheet(
+                      title: '출생 연도 선택',
+                      values: List.generate(currentYear - 1899, (i) => 1900 + i).reversed.toList(),
+                      selected: selectedYear,
+                      onSelected: (value) => _setBirthDate(year: value),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildBirthSelectCard(
+                  label: '월',
+                  value: '$selectedMonth',
+                  onTap: () {
+                    final maxMonth = _maxSelectableMonth(selectedYear);
+                    _showBirthPickerSheet(
+                      title: '출생 월 선택',
+                      values: List.generate(maxMonth, (i) => i + 1),
+                      selected: selectedMonth,
+                      onSelected: (value) => _setBirthDate(month: value),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildBirthSelectCard(
+                  label: '일',
+                  value: '$selectedDay',
+                  onTap: () {
+                    final maxDay = _maxSelectableDay(selectedYear, selectedMonth);
+                    _showBirthPickerSheet(
+                      title: '출생 일 선택',
+                      values: List.generate(maxDay, (i) => i + 1),
+                      selected: selectedDay,
+                      onSelected: (value) => _setBirthDate(day: value),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
-          _buildDateStepper(
-            label: "월",
-            valueText: "$selectedMonth",
-            onDecrement: () {
-              final nextMonth = selectedMonth == 1 ? 12 : selectedMonth - 1;
-              final nextYear = selectedMonth == 1 ? selectedYear - 1 : selectedYear;
-              if (nextYear < 1900) return;
-              final clampedDay = _birthDate.day.clamp(1, DateUtils.getDaysInMonth(nextYear, nextMonth));
-              setState(() => _birthDate = DateTime(nextYear, nextMonth, clampedDay));
-            },
-            onIncrement: () {
-              final nextMonth = selectedMonth == 12 ? 1 : selectedMonth + 1;
-              final nextYear = selectedMonth == 12 ? selectedYear + 1 : selectedYear;
-              if (nextYear > DateTime.now().year) return;
-              final clampedDay = _birthDate.day.clamp(1, DateUtils.getDaysInMonth(nextYear, nextMonth));
-              setState(() => _birthDate = DateTime(nextYear, nextMonth, clampedDay));
-            },
-          ),
-          const SizedBox(height: 14),
-          _buildDateStepper(
-            label: "일",
-            valueText: "$selectedDay",
-            onDecrement: () {
-              final minDate = DateTime(1900, 1, 1);
-              final nextDate = _birthDate.subtract(const Duration(days: 1));
-              if (nextDate.isBefore(minDate)) return;
-              setState(() => _birthDate = nextDate);
-            },
-            onIncrement: () {
-              final today = DateTime.now();
-              final nextDate = _birthDate.add(const Duration(days: 1));
-              if (nextDate.isAfter(DateTime(today.year, today.month, today.day))) return;
-              setState(() => _birthDate = nextDate);
-            },
+          const SizedBox(height: 12),
+          const Text(
+            "연, 월, 일을 눌러서 선택해 주세요.",
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.textSub,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  int _maxSelectableMonth(int year) {
+    final today = DateTime.now();
+    return year == today.year ? today.month : 12;
+  }
+
+  int _maxSelectableDay(int year, int month) {
+    final today = DateTime.now();
+    final daysInMonth = DateUtils.getDaysInMonth(year, month);
+    if (year == today.year && month == today.month) {
+      return today.day;
+    }
+    return daysInMonth;
+  }
+
+  void _setBirthDate({int? year, int? month, int? day}) {
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+
+    int nextYear = year ?? _birthDate.year;
+    nextYear = nextYear.clamp(1900, today.year).toInt();
+
+    int nextMonth = month ?? _birthDate.month;
+    nextMonth = nextMonth.clamp(1, _maxSelectableMonth(nextYear)).toInt();
+
+    int nextDay = day ?? _birthDate.day;
+    nextDay = nextDay.clamp(1, _maxSelectableDay(nextYear, nextMonth)).toInt();
+
+    DateTime candidate = DateTime(nextYear, nextMonth, nextDay);
+    if (candidate.isAfter(todayDate)) {
+      candidate = todayDate;
+    }
+
+    setState(() => _birthDate = candidate);
+  }
+
+  Future<void> _showBirthPickerSheet({
+    required String title,
+    required List<int> values,
+    required int selected,
+    required ValueChanged<int> onSelected,
+  }) async {
+    final picked = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: SizedBox(
+            height: 420,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textMain,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: values.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, index) {
+                      final value = values[index];
+                      final isSelected = value == selected;
+                      return ListTile(
+                        onTap: () => Navigator.pop(sheetContext, value),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                        title: Text(
+                          '$value',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                            color: isSelected ? AppColors.primaryDark : AppColors.textMain,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle, color: AppColors.primary, size: 28)
+                            : null,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (picked != null) {
+      onSelected(picked);
+    }
+  }
+
+  Widget _buildBirthSelectCard({
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 1.5),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppColors.textSub,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textMain,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -276,11 +500,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       question: "누가 이 앱을\n사용하시나요?",
       child: Column(
         children: [
-          _selectionButton("직접 사용하는 어르신", _role == "어르신", () => setState(() => _role = "어르신")),
+          _selectionButton("어르신", _role == "어르신", () => setState(() => _role = "어르신")),
           const SizedBox(height: 16),
-          _selectionButton("어르신을 돕는 보호자", _role == "보호자", () => setState(() => _role = "보호자")),
+          _selectionButton("보호자", _role == "보호자", () => setState(() => _role = "보호자")),
           const SizedBox(height: 16),
-          _selectionButton("구인하려는 사람", _role == "구인자", () => setState(() => _role = "구인자")),
+          _selectionButton("구인자", _role == "구인자", () => setState(() => _role = "구인자")),
         ],
       ),
     );
@@ -293,12 +517,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         controller: _phoneController,
         keyboardType: TextInputType.phone,
         inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(11),
+          FilteringTextInputFormatter.allow(RegExp(r'[\d-]')),
+          KoreanPhoneNumberFormatter(),
         ],
         style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
         decoration: InputDecoration(
-          hintText: "예: 01012345678",
+          hintText: "예: 010-1234-5678",
           filled: true,
           fillColor: Colors.grey.shade100,
           border: OutlineInputBorder(
@@ -307,7 +531,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.green.shade300, width: 2),
+            borderSide: BorderSide(color: AppColors.primary, width: 2),
           ),
         ),
         onChanged: (val) => setState(() => _phone = val.trim()),
@@ -324,7 +548,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           fontSize: 56,
           fontWeight: FontWeight.w800,
           letterSpacing: 1.5,
-          color: Color(0xFF2E7D32),
+          color: AppColors.primaryDark,
           shadows: [
             Shadow(
               color: Color(0x22000000),
@@ -333,83 +557,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDateStepper({
-    required String label,
-    required String valueText,
-    required VoidCallback onDecrement,
-    required VoidCallback onIncrement,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green.shade200, width: 2),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 52,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 10),
-          _buildCircleActionButton(
-            icon: Icons.remove,
-            onTap: onDecrement,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Container(
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                valueText,
-                style: const TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          _buildCircleActionButton(
-            icon: Icons.add,
-            onTap: onIncrement,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCircleActionButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: onTap,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.green.shade600,
-        ),
-        child: Icon(icon, color: Colors.white, size: 30),
       ),
     );
   }
@@ -437,9 +584,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 25),
       decoration: BoxDecoration(
-        color: isSelected ? Colors.green : Colors.grey.shade100,
+        color: isSelected ? AppColors.primary : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isSelected ? Colors.green : Colors.grey.shade300, width: 2),
+        border: Border.all(color: isSelected ? AppColors.primary : Colors.grey.shade300, width: 2),
       ),
       child: Center(
         child: Text(
@@ -461,7 +608,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     if (_currentPage == 1) canGoNext = true;
     if (_currentPage == 2 && _gender.isNotEmpty) canGoNext = true;
     if (_currentPage == 3 && _role.isNotEmpty) canGoNext = true;
-    if (_currentPage == 4 && _phone.length >= 10) canGoNext = true;
+    if (_currentPage == 4 && _phoneDigits(_phone).length == 11) canGoNext = true;
     if (_currentPage == 5) canGoNext = true;
 
     return Padding(
@@ -476,7 +623,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         child: ElevatedButton(
           onPressed: canGoNext ? _nextPage : null,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.primary,
             disabledBackgroundColor: Colors.grey.shade300,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           ),
@@ -489,3 +636,4 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 }
+

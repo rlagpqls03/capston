@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
@@ -6,6 +6,7 @@ import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/registration_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,14 +38,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: '느티나무',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primaryColor: Colors.green, useMaterial3: true),
+      theme: AppTheme.light,
       home: StreamBuilder<auth.User?>(
         stream: AuthService().userStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(
-                child: CircularProgressIndicator(color: Colors.green),
+                child: CircularProgressIndicator(color: AppColors.primary),
               ),
             );
           }
@@ -58,7 +59,7 @@ class MyApp extends StatelessWidget {
               if (homeSnapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
                   body: Center(
-                    child: CircularProgressIndicator(color: Colors.green),
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   ),
                 );
               }
@@ -72,3 +73,5 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+
