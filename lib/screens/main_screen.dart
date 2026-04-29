@@ -192,7 +192,7 @@ class _MainScreenState extends State<MainScreen> {
           type: HomeSearchType.exercise,
         ),
         HomeSearchItem(
-          title: '병원찾기',
+          title: '병원 찾기',
           subtitle: '주변 병원 찾기',
           keywords: ['병원', '의원', '지도', '위치'],
           type: HomeSearchType.hospital,
@@ -420,7 +420,7 @@ class _MainScreenState extends State<MainScreen> {
                   _buildQuickMenuCard(
                     icon: Icons.local_hospital_outlined,
                     iconColor: const Color(0xFF1E9A86),
-                    title: '병원찾기',
+                    title: '병원 찾기',
                     subtitle: '내 주변 병원을\n찾아보세요',
                     accent: const Color(0xFFE7F8F5),
                     onTap: () {
