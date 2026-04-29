@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
 import '../theme/app_theme.dart';
@@ -19,12 +19,14 @@ class LocationPickerScreen extends StatefulWidget {
   final double? initialLat;
   final double? initialLng;
   final String title;
+  final bool readOnly;
 
   const LocationPickerScreen({
     super.key,
     this.initialLat,
     this.initialLng,
-    this.title = "위치 선택",
+    this.title = '위치 선택',
+    this.readOnly = false,
   });
 
   @override
@@ -33,7 +35,7 @@ class LocationPickerScreen extends StatefulWidget {
 
 class _LocationPickerScreenState extends State<LocationPickerScreen> {
   late LatLng _selected;
-  String _address = "지도를 탭해 위치를 선택해 주세요.";
+  String _address = '지도를 탭해 위치를 선택해 주세요.';
   bool _loading = false;
 
   @override
@@ -60,7 +62,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
       if (placemarks.isEmpty) {
         setState(() {
-          _address = "위도 ${position.latitude.toStringAsFixed(5)}, 경도 ${position.longitude.toStringAsFixed(5)}";
+          _address = '위도 ${position.latitude.toStringAsFixed(5)}, 경도 ${position.longitude.toStringAsFixed(5)}';
         });
       } else {
         final p = placemarks.first;
@@ -76,14 +78,14 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         final containsEnglish = RegExp(r'[A-Za-z]').hasMatch(text);
         setState(() {
           _address = text.isEmpty || containsEnglish
-              ? "위도 ${position.latitude.toStringAsFixed(5)}, 경도 ${position.longitude.toStringAsFixed(5)}"
+              ? '위도 ${position.latitude.toStringAsFixed(5)}, 경도 ${position.longitude.toStringAsFixed(5)}'
               : text;
         });
       }
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _address = "위도 ${position.latitude.toStringAsFixed(5)}, 경도 ${position.longitude.toStringAsFixed(5)}";
+        _address = '위도 ${position.latitude.toStringAsFixed(5)}, 경도 ${position.longitude.toStringAsFixed(5)}';
       });
     } finally {
       if (mounted) {
@@ -106,13 +108,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             child: GoogleMap(
               initialCameraPosition: CameraPosition(target: _selected, zoom: 15),
               myLocationButtonEnabled: false,
-              onTap: (position) {
-                setState(() => _selected = position);
-                _resolveAddress(position);
-              },
+              onTap: widget.readOnly
+                  ? null
+                  : (position) {
+                      setState(() => _selected = position);
+                      _resolveAddress(position);
+                    },
               markers: {
                 Marker(
-                  markerId: const MarkerId("selected"),
+                  markerId: const MarkerId('selected'),
                   position: _selected,
                 ),
               },
@@ -125,9 +129,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "선택 위치",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                Text(
+                  widget.readOnly ? '기관 위치' : '선택 위치',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -142,6 +146,10 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                     onPressed: _loading
                         ? null
                         : () {
+                            if (widget.readOnly) {
+                              Navigator.pop(context);
+                              return;
+                            }
                             Navigator.pop(
                               context,
                               LocationPickerResult(
@@ -166,9 +174,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
-                            "이 위치 사용",
-                            style: TextStyle(
+                        : Text(
+                            widget.readOnly ? '닫기' : '이 위치 사용',
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
                             ),

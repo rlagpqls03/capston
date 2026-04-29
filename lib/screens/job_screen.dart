@@ -462,6 +462,8 @@ class _JobScreenState extends State<JobScreen> {
   }
 
   void _showJobDetail(String docId, Map<String, dynamic> data, bool isMine) {
+    final lat = _toDouble(data["locationLat"]);
+    final lng = _toDouble(data["locationLng"]);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -503,6 +505,31 @@ class _JobScreenState extends State<JobScreen> {
                   data["recruiterPhone"]?.toString().isNotEmpty == true
                       ? PhoneUtils.formatKoreanPhone(data["recruiterPhone"].toString())
                       : "등록된 연락처 없음",
+                ),
+              if (lat != null && lng != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => LocationPickerScreen(
+                              initialLat: lat,
+                              initialLng: lng,
+                              title: "기관 위치",
+                              readOnly: true,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.map_outlined),
+                      label: const Text("지도에서 위치 보기"),
+                    ),
+                  ),
                 ),
               const SizedBox(height: 12),
               Text(data["description"]?.toString() ?? "", style: const TextStyle(fontSize: 18, height: 1.5)),

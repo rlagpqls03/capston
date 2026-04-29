@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
@@ -74,7 +74,7 @@ class _MainScreenState extends State<MainScreen> {
 
     try {
       final doc =
-          await _firestore.collection('users').doc(widget.socialId!).get();
+      await _firestore.collection('users').doc(widget.socialId!).get();
 
       if (doc.exists) {
         final data = doc.data();
@@ -93,7 +93,7 @@ class _MainScreenState extends State<MainScreen> {
           final rawRecommendation = data?['exerciseRecommendation'];
           if (rawRecommendation is Map) {
             exerciseRecommendation =
-                Map<String, dynamic>.from(rawRecommendation);
+            Map<String, dynamic>.from(rawRecommendation);
           } else {
             exerciseRecommendation = null;
           }
@@ -130,29 +130,29 @@ class _MainScreenState extends State<MainScreen> {
         elevation: 0,
         actions: _selectedIndex == 0
             ? [
-                HomeSearchActionButton(onPressed: _openHomeSearch),
-                const SizedBox(width: 8),
-                HomeBellActionButton(onPressed: _openNotificationScreen),
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: const HomeTreeAvatarButton(),
-                ),
-              ]
+          HomeSearchActionButton(onPressed: _openHomeSearch),
+          const SizedBox(width: 8),
+          HomeBellActionButton(onPressed: _openNotificationScreen),
+          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: const HomeTreeAvatarButton(),
+          ),
+        ]
             : [
-                IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.grey),
-                  onPressed: () async {
-                    await AuthService().signOut();
-                    if (mounted) {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => LoginScreen()),
-                        (route) => false,
-                      );
-                    }
-                  },
-                ),
-              ],
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.grey),
+            onPressed: () async {
+              await AuthService().signOut();
+              if (mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                      (route) => false,
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: Container(
         width: double.infinity,
@@ -179,55 +179,55 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   List<HomeSearchItem> get _homeSearchItems => const [
-        HomeSearchItem(
-          title: '추천 운동 받기',
-          subtitle: '오늘의 추천 운동 카드로 이동',
-          keywords: ['추천운동', '운동 추천', '문답', '운동'],
-          type: HomeSearchType.recommendation,
-        ),
-        HomeSearchItem(
-          title: '운동 시작',
-          subtitle: '운동 화면 열기',
-          keywords: ['운동', '활동', '걷기'],
-          type: HomeSearchType.exercise,
-        ),
-        HomeSearchItem(
-          title: '병원 찾기',
-          subtitle: '주변 병원 찾기',
-          keywords: ['병원', '의원', '지도', '위치'],
-          type: HomeSearchType.hospital,
-        ),
-        HomeSearchItem(
-          title: '일자리 찾기',
-          subtitle: '구직 정보 확인',
-          keywords: ['구직', '일자리', '취업', '채용'],
-          type: HomeSearchType.job,
-        ),
-        HomeSearchItem(
-          title: '건강 기록',
-          subtitle: '건강 기록 화면 열기',
-          keywords: ['건강', '기록', '증상'],
-          type: HomeSearchType.health,
-        ),
-        HomeSearchItem(
-          title: '포인트 적립',
-          subtitle: '포인트 적립 안내 화면 열기',
-          keywords: ['포인트', '적립', '알림', '보상'],
-          type: HomeSearchType.point,
-        ),
-        HomeSearchItem(
-          title: '활동 탭',
-          subtitle: '활동 추천 탭으로 이동',
-          keywords: ['활동', '배드민턴', '골프', '등산'],
-          type: HomeSearchType.activityTab,
-        ),
-        HomeSearchItem(
-          title: '내 정보',
-          subtitle: '프로필 탭으로 이동',
-          keywords: ['내정보', '프로필', '정보'],
-          type: HomeSearchType.profileTab,
-        ),
-      ];
+    HomeSearchItem(
+      title: '추천 운동 받기',
+      subtitle: '오늘의 추천 운동 카드로 이동',
+      keywords: ['추천운동', '운동 추천', '문답', '운동'],
+      type: HomeSearchType.recommendation,
+    ),
+    HomeSearchItem(
+      title: '운동 시작',
+      subtitle: '운동 화면 열기',
+      keywords: ['운동', '활동', '걷기'],
+      type: HomeSearchType.exercise,
+    ),
+    HomeSearchItem(
+      title: '병원 찾기',
+      subtitle: '주변 병원 찾기',
+      keywords: ['병원', '의원', '지도', '위치'],
+      type: HomeSearchType.hospital,
+    ),
+    HomeSearchItem(
+      title: '일자리 찾기',
+      subtitle: '구직 정보 확인',
+      keywords: ['구직', '일자리', '취업', '채용'],
+      type: HomeSearchType.job,
+    ),
+    HomeSearchItem(
+      title: '건강 기록',
+      subtitle: '건강 기록 화면 열기',
+      keywords: ['건강', '기록', '증상'],
+      type: HomeSearchType.health,
+    ),
+    HomeSearchItem(
+      title: '포인트 적립',
+      subtitle: '포인트 적립 안내 화면 열기',
+      keywords: ['포인트', '적립', '알림', '보상'],
+      type: HomeSearchType.point,
+    ),
+    HomeSearchItem(
+      title: '활동 탭',
+      subtitle: '활동 추천 탭으로 이동',
+      keywords: ['활동', '배드민턴', '골프', '등산'],
+      type: HomeSearchType.activityTab,
+    ),
+    HomeSearchItem(
+      title: '내 정보',
+      subtitle: '프로필 탭으로 이동',
+      keywords: ['내정보', '프로필', '정보'],
+      type: HomeSearchType.profileTab,
+    ),
+  ];
 
   Future<void> _openHomeSearch() async {
     final selected = await showSearch<HomeSearchItem?>(
@@ -256,7 +256,7 @@ class _MainScreenState extends State<MainScreen> {
   void _handleHomeSearchSelection(HomeSearchItem item) {
     switch (item.type) {
       case HomeSearchType.recommendation:
-        _handleTodayExerciseCardTap();
+        _handleTodayExerciseCardTap();  
         return;
       case HomeSearchType.exercise:
         Navigator.push(
@@ -814,7 +814,7 @@ class _MainScreenState extends State<MainScreen> {
                         child: ListView.separated(
                           itemCount: options.length,
                           separatorBuilder: (_, __) =>
-                              const SizedBox(height: 10),
+                          const SizedBox(height: 10),
                           itemBuilder: (_, index) {
                             final option = options[index];
                             return _surveyChoiceButton(
@@ -822,52 +822,52 @@ class _MainScreenState extends State<MainScreen> {
                               onTap: isSaving
                                   ? null
                                   : () async {
-                                      if (step == 0) {
-                                        setSheetState(() {
-                                          primary = option;
-                                          detail = null;
-                                          step = 1;
-                                        });
-                                        return;
-                                      }
+                                if (step == 0) {
+                                  setSheetState(() {
+                                    primary = option;
+                                    detail = null;
+                                    step = 1;
+                                  });
+                                  return;
+                                }
 
-                                      if (step == 1) {
-                                        setSheetState(() {
-                                          detail = option;
-                                          step = 2;
-                                        });
-                                        return;
-                                      }
+                                if (step == 1) {
+                                  setSheetState(() {
+                                    detail = option;
+                                    step = 2;
+                                  });
+                                  return;
+                                }
 
-                                      setSheetState(() => isSaving = true);
-                                      try {
-                                        final recommendation =
-                                            buildExerciseRecommendation(
-                                          primary: primary ?? '전신 피로',
-                                          detail: detail ?? '몸이 무겁고 무기력해요',
-                                          severity: option,
-                                        );
-                                        await _saveExerciseRecommendation(
-                                            recommendation);
-                                        if (sheetContext.mounted) {
-                                          Navigator.pop(sheetContext);
-                                        }
-                                        if (mounted) {
-                                          _showExerciseRecommendationDialog(
-                                              recommendation);
-                                        }
-                                      } catch (e) {
-                                        if (!mounted) return;
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                              content: Text('추천 저장 실패: $e')),
-                                        );
-                                        if (sheetContext.mounted) {
-                                          setSheetState(() => isSaving = false);
-                                        }
-                                      }
-                                    },
+                                setSheetState(() => isSaving = true);
+                                try {
+                                  final recommendation =
+                                  buildExerciseRecommendation(
+                                    primary: primary ?? '전신 피로',
+                                    detail: detail ?? '몸이 무겁고 무기력해요',
+                                    severity: option,
+                                  );
+                                  await _saveExerciseRecommendation(
+                                      recommendation);
+                                  if (sheetContext.mounted) {
+                                    Navigator.pop(sheetContext);
+                                  }
+                                  if (mounted) {
+                                    _showExerciseRecommendationDialog(
+                                        recommendation);
+                                  }
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(
+                                    SnackBar(
+                                        content: Text('추천 저장 실패: $e')),
+                                  );
+                                  if (sheetContext.mounted) {
+                                    setSheetState(() => isSaving = false);
+                                  }
+                                }
+                              },
                             );
                           },
                         ),
@@ -969,7 +969,7 @@ class _MainScreenState extends State<MainScreen> {
               Text(
                 summary,
                 style:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 10),
               Text(
@@ -1254,7 +1254,7 @@ class _MainScreenState extends State<MainScreen> {
       }
 
       final seniorName =
-          _normalizeUserName(seniorData['name'], seniorData['displayName']);
+      _normalizeUserName(seniorData['name'], seniorData['displayName']);
 
       await _firestore.collection('users').doc(widget.socialId!).set({
         'connectedSeniorCode': code,
@@ -1335,7 +1335,7 @@ class _MainScreenState extends State<MainScreen> {
       final seniorBirthDate = (data['birthDate'] ?? '').toString();
       final seniorGender = (data['gender'] ?? '').toString();
       final seniorPhone =
-          PhoneUtils.formatKoreanPhone((data['phone'] ?? '').toString());
+      PhoneUtils.formatKoreanPhone((data['phone'] ?? '').toString());
       final seniorConnectionCode = (data['connectionCode'] ?? '').toString();
 
       if (!mounted) return;
@@ -1343,7 +1343,7 @@ class _MainScreenState extends State<MainScreen> {
         context: context,
         builder: (_) => AlertDialog(
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text('연결된 어르신 정보'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
