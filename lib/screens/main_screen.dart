@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import '../models/home_search_item.dart';
 import 'login_screen.dart';
 import 'exercise_screen.dart';
 import 'exercise_camera_screen.dart';
@@ -15,7 +16,6 @@ import 'point_notification_screen.dart';
 import '../features/exercise_recommendation/exercise_recommendation_config.dart';
 import '../utils/phone_utils.dart';
 import '../widgets/home_app_bar_actions.dart';
-import '../widgets/home_menu_search_delegate.dart';
 
 class MainScreen extends StatefulWidget {
   final String? socialId;
@@ -58,12 +58,6 @@ class _MainScreenState extends State<MainScreen> {
     return title;
   }
 
-  String _recommendationSummary() {
-    final summary = (exerciseRecommendation?['summary'] ?? '').toString();
-    if (summary.trim().isEmpty) return '통증 문답을 통해 맞춤 운동을 추천해 드려요.';
-    return summary;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -75,7 +69,7 @@ class _MainScreenState extends State<MainScreen> {
 
     try {
       final doc =
-      await _firestore.collection('users').doc(widget.socialId!).get();
+          await _firestore.collection('users').doc(widget.socialId!).get();
 
       if (doc.exists) {
         final data = doc.data();
@@ -94,7 +88,7 @@ class _MainScreenState extends State<MainScreen> {
           final rawRecommendation = data?['exerciseRecommendation'];
           if (rawRecommendation is Map) {
             exerciseRecommendation =
-            Map<String, dynamic>.from(rawRecommendation);
+                Map<String, dynamic>.from(rawRecommendation);
           } else {
             exerciseRecommendation = null;
           }
@@ -122,7 +116,7 @@ class _MainScreenState extends State<MainScreen> {
         title: const Text(
           '느티나무',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w900,
             color: Color(0xFF24C768),
             fontSize: 24,
           ),
@@ -131,29 +125,27 @@ class _MainScreenState extends State<MainScreen> {
         elevation: 0,
         actions: _selectedIndex == 0
             ? [
-          HomeSearchActionButton(onPressed: _openHomeSearch),
-          const SizedBox(width: 8),
-          HomeBellActionButton(onPressed: _openNotificationScreen),
-          const SizedBox(width: 8),
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: const HomeTreeAvatarButton(),
-          ),
-        ]
+                HomeBellActionButton(onPressed: _openNotificationScreen),
+                const SizedBox(width: 8),
+                const Padding(
+                  padding: EdgeInsets.only(right: 16),
+                  child: HomeTreeAvatarButton(),
+                ),
+              ]
             : [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.grey),
-            onPressed: () async {
-              await AuthService().signOut();
-              if (mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => LoginScreen()),
+                IconButton(
+                  icon: const Icon(Icons.logout, color: Colors.grey),
+                  onPressed: () async {
+                    final navigator = Navigator.of(context);
+                    await AuthService().signOut();
+                    if (!mounted) return;
+                    navigator.pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => LoginScreen()),
                       (route) => false,
-                );
-              }
-            },
-          ),
-        ],
+                    );
+                  },
+                ),
+              ],
       ),
       body: Container(
         width: double.infinity,
@@ -179,67 +171,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  List<HomeSearchItem> get _homeSearchItems => const [
-    HomeSearchItem(
-      title: '추천 운동 받기',
-      subtitle: '오늘의 추천 운동 카드로 이동',
-      keywords: ['추천운동', '운동 추천', '문답', '운동'],
-      type: HomeSearchType.recommendation,
-    ),
-    HomeSearchItem(
-      title: '운동 시작',
-      subtitle: '운동 화면 열기',
-      keywords: ['운동', '활동', '걷기'],
-      type: HomeSearchType.exercise,
-    ),
-    HomeSearchItem(
-      title: '병원 찾기',
-      subtitle: '주변 병원 찾기',
-      keywords: ['병원', '의원', '지도', '위치'],
-      type: HomeSearchType.hospital,
-    ),
-    HomeSearchItem(
-      title: '일자리 찾기',
-      subtitle: '구직 정보 확인',
-      keywords: ['구직', '일자리', '취업', '채용'],
-      type: HomeSearchType.job,
-    ),
-    HomeSearchItem(
-      title: '건강 기록',
-      subtitle: '건강 기록 화면 열기',
-      keywords: ['건강', '기록', '증상'],
-      type: HomeSearchType.health,
-    ),
-    HomeSearchItem(
-      title: '포인트 적립',
-      subtitle: '포인트 적립 안내 화면 열기',
-      keywords: ['포인트', '적립', '알림', '보상'],
-      type: HomeSearchType.point,
-    ),
-    HomeSearchItem(
-      title: '활동 탭',
-      subtitle: '활동 추천 탭으로 이동',
-      keywords: ['활동', '배드민턴', '골프', '등산'],
-      type: HomeSearchType.activityTab,
-    ),
-    HomeSearchItem(
-      title: '내 정보',
-      subtitle: '프로필 탭으로 이동',
-      keywords: ['내정보', '프로필', '정보'],
-      type: HomeSearchType.profileTab,
-    ),
-  ];
-
-  Future<void> _openHomeSearch() async {
-    final selected = await showSearch<HomeSearchItem?>(
-      context: context,
-      delegate: HomeMenuSearchDelegate(items: _homeSearchItems),
-    );
-
-    if (!mounted || selected == null) return;
-    _handleHomeSearchSelection(selected);
-  }
-
   void _openPointNotification() {
     Navigator.push(
       context,
@@ -252,49 +183,6 @@ class _MainScreenState extends State<MainScreen> {
       context,
       MaterialPageRoute(builder: (_) => const NotificationScreen()),
     );
-  }
-
-  void _handleHomeSearchSelection(HomeSearchItem item) {
-    switch (item.type) {
-      case HomeSearchType.recommendation:
-        _handleTodayExerciseCardTap();  
-        return;
-      case HomeSearchType.exercise:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ExerciseScreen()),
-        );
-        return;
-      case HomeSearchType.hospital:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const HospitalFinderScreen()),
-        );
-        return;
-      case HomeSearchType.job:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => JobScreen(socialId: widget.socialId),
-          ),
-        );
-        return;
-      case HomeSearchType.health:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const HealthRecordScreen()),
-        );
-        return;
-      case HomeSearchType.point:
-        _openPointNotification();
-        return;
-      case HomeSearchType.activityTab:
-        setState(() => _selectedIndex = 1);
-        return;
-      case HomeSearchType.profileTab:
-        setState(() => _selectedIndex = 3);
-        return;
-    }
   }
 
   Widget _buildHomeTab() {
@@ -345,12 +233,12 @@ class _MainScreenState extends State<MainScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           '나의 포인트',
-                          style: TextStyle(
+                          style: GoogleFonts.notoSansKr(
                             fontSize: 18,
                             color: AppColors.textSub,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -361,15 +249,6 @@ class _MainScreenState extends State<MainScreen> {
                             height: 1,
                             fontWeight: FontWeight.w900,
                             color: AppColors.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '활동으로 포인트를 모아보세요.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textSub,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -402,14 +281,18 @@ class _MainScreenState extends State<MainScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 14,
-                childAspectRatio: compact ? 0.72 : 0.80,
+                childAspectRatio: compact ? 0.94 : 1.02,
                 children: [
                   _buildQuickMenuCard(
                     icon: Icons.directions_walk_rounded,
                     iconColor: const Color(0xFF289A51),
                     title: '운동 시작',
-                    subtitle: '오늘의 운동을\n시작해 보세요',
+                    subtitle: '',
                     accent: const Color(0xFFE7F7EB),
+                    cardColors: const [
+                      Color(0xFFFFFFFF),
+                      Color(0xFFE7F7EB),
+                    ],
                     onTap: () {
                       Navigator.push(
                         context,
@@ -422,8 +305,12 @@ class _MainScreenState extends State<MainScreen> {
                     icon: Icons.local_hospital_outlined,
                     iconColor: const Color(0xFF1E9A86),
                     title: '병원 찾기',
-                    subtitle: '내 주변 병원을\n찾아보세요',
+                    subtitle: '',
                     accent: const Color(0xFFE7F8F5),
+                    cardColors: const [
+                      Color(0xFFFFFFFF),
+                      Color(0xFFE7F8F5),
+                    ],
                     onTap: () {
                       Navigator.push(
                         context,
@@ -437,8 +324,12 @@ class _MainScreenState extends State<MainScreen> {
                     icon: Icons.work_outline_rounded,
                     iconColor: const Color(0xFF7B57D1),
                     title: '일자리 찾기',
-                    subtitle: '다양한 일자리를\n확인해 보세요',
+                    subtitle: '',
                     accent: const Color(0xFFF2ECFF),
+                    cardColors: const [
+                      Color(0xFFFFFFFF),
+                      Color(0xFFF2ECFF),
+                    ],
                     onTap: () {
                       Navigator.push(
                         context,
@@ -452,8 +343,12 @@ class _MainScreenState extends State<MainScreen> {
                     icon: Icons.favorite_border_rounded,
                     iconColor: const Color(0xFFE16A56),
                     title: '건강 기록',
-                    subtitle: '나의 건강 기록을\n관리해 보세요',
+                    subtitle: '',
                     accent: const Color(0xFFFFEEE9),
+                    cardColors: const [
+                      Color(0xFFFFFFFF),
+                      Color(0xFFFFEEE9),
+                    ],
                     onTap: () {
                       Navigator.push(
                         context,
@@ -484,7 +379,7 @@ class _MainScreenState extends State<MainScreen> {
               children: [
                 Text(
                   '안녕하세요, $userName 님',
-                  style: const TextStyle(
+                  style: GoogleFonts.notoSansKr(
                     fontSize: 24,
                     height: 1.2,
                     fontWeight: FontWeight.w900,
@@ -492,14 +387,14 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       child: Text(
                         '오늘도 건강한 하루 되세요!',
-                        style: TextStyle(
+                        style: GoogleFonts.notoSansKr(
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w900,
                           color: AppColors.textSub,
                         ),
                       ),
@@ -515,29 +410,162 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ),
           const SizedBox(width: 14),
-          Container(
-            width: 66,
-            height: 66,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: const Color(0xFFE6ECE6)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.settings_outlined,
-              color: AppColors.textMain,
-              size: 30,
+          InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: _showFontSettingsSheet,
+            child: Container(
+              width: 66,
+              height: 66,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFFE6ECE6)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.settings_outlined,
+                color: AppColors.textMain,
+                size: 30,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  void _showFontSettingsSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) {
+        return ValueListenableBuilder<double>(
+          valueListenable: AppFontSettings.scale,
+          builder: (context, fontScale, _) {
+            return MediaQuery(
+              data: MediaQuery.of(sheetContext).copyWith(
+                textScaler: const TextScaler.linear(1.0),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '글자 크기 조절',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textMain,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () {
+                                final nextValue =
+                                    (fontScale - 0.1).clamp(0.9, 1.4);
+                                AppFontSettings.scale.value = nextValue;
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: const Text(
+                                  '작게',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: AppColors.textSub,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Slider(
+                              value: fontScale,
+                              min: 0.9,
+                              max: 1.4,
+                              divisions: 5,
+                              label: '${fontScale.toStringAsFixed(1)}배',
+                              activeColor: AppColors.primary,
+                              onChanged: (value) {
+                                AppFontSettings.scale.value = value;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () {
+                                final nextValue =
+                                    (fontScale + 0.1).clamp(0.9, 1.4);
+                                AppFontSettings.scale.value = nextValue;
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEAF9F0),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: const Text(
+                                  '크게',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: AppColors.primaryDark,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(sheetContext),
+                          child: const Text('확인'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -583,12 +611,12 @@ class _MainScreenState extends State<MainScreen> {
                 const Icon(Icons.health_and_safety_outlined,
                     color: AppColors.primaryDark, size: 28),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   '오늘의 추천 운동',
-                  style: TextStyle(
+                  style: GoogleFonts.notoSansKr(
                     fontSize: 18,
                     color: AppColors.textMain,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const Spacer(),
@@ -612,17 +640,7 @@ class _MainScreenState extends State<MainScreen> {
                 color: AppColors.primaryDark,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              _recommendationSummary(),
-              style: const TextStyle(
-                fontSize: 15,
-                color: AppColors.textSub,
-                fontWeight: FontWeight.w600,
-                height: 1.35,
-              ),
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -636,13 +654,11 @@ class _MainScreenState extends State<MainScreen> {
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Text(
-                      exerciseSurveyCompleted
-                          ? '추천 운동과 영상을 확인해 보세요.'
-                          : '처음 3단계 문답으로 맞춤 운동을 추천해 드려요.',
+                      exerciseSurveyCompleted ? '추천 운동 보기' : '3단계 문답으로 추천받기',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.textSub,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                   ),
@@ -672,65 +688,65 @@ class _MainScreenState extends State<MainScreen> {
     required IconData icon,
     required Color iconColor,
     required Color accent,
+    required List<Color> cardColors,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
   }) {
+    final titleColor =
+        Color.lerp(AppColors.textMain, iconColor, 0.42) ?? AppColors.textMain;
+
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 16, 14, 14),
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
         decoration: _homeCardDecoration(
-          colors: const [
-            Color(0xFFFFFFFF),
-            Color(0xFFFAFCFA),
-          ],
+          colors: cardColors,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            Container(
-              width: 62,
-              height: 62,
-              decoration: BoxDecoration(
-                color: accent,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 34, color: iconColor),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                color: AppColors.textMain,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 13,
-                height: 1.35,
-                color: AppColors.textSub,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const Spacer(),
             Align(
-              alignment: Alignment.bottomRight,
+              alignment: Alignment.topLeft,
+              child: Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.48),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 32, color: iconColor),
+              ),
+            ),
+            Align(
+              alignment: Alignment.topRight,
               child: Container(
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: accent,
-                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   Icons.chevron_right_rounded,
                   color: iconColor,
+                  size: 20,
+                ),
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 22, bottom: 22),
+                child: Text(
+                  title,
+                  textAlign: TextAlign.right,
+                  style: GoogleFonts.notoSansKr(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: titleColor,
+                    height: 1.2,
+                  ),
                 ),
               ),
             ),
@@ -814,7 +830,7 @@ class _MainScreenState extends State<MainScreen> {
                         child: ListView.separated(
                           itemCount: options.length,
                           separatorBuilder: (_, __) =>
-                          const SizedBox(height: 10),
+                              const SizedBox(height: 10),
                           itemBuilder: (_, index) {
                             final option = options[index];
                             return _surveyChoiceButton(
@@ -822,51 +838,51 @@ class _MainScreenState extends State<MainScreen> {
                               onTap: isSaving
                                   ? null
                                   : () async {
-                                if (step == 0) {
-                                  setSheetState(() {
-                                    primary = option;
-                                    detail = null;
-                                    step = 1;
-                                  });
-                                  return;
-                                }
+                                      if (step == 0) {
+                                        setSheetState(() {
+                                          primary = option;
+                                          detail = null;
+                                          step = 1;
+                                        });
+                                        return;
+                                      }
 
-                                if (step == 1) {
-                                  setSheetState(() {
-                                    detail = option;
-                                    step = 2;
-                                  });
-                                  return;
-                                }
+                                      if (step == 1) {
+                                        setSheetState(() {
+                                          detail = option;
+                                          step = 2;
+                                        });
+                                        return;
+                                      }
 
-                                setSheetState(() => isSaving = true);
-                                try {
-                                  final recommendation =
-                                  buildExerciseRecommendation(
-                                    primary: primary ?? '전신 피로',
-                                    detail: detail ?? '몸이 무겁고 무기력해요',
-                                    severity: option,
-                                  );
-                                  await _saveExerciseRecommendation(
-                                      recommendation);
-                                  if (sheetContext.mounted) {
-                                    Navigator.pop(sheetContext);
-                                  }
-                                  if (mounted) {
-                                    _openExerciseCamera(recommendation);
-                                  }
-                                } catch (e) {
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(
-                                    SnackBar(
-                                        content: Text('추천 저장 실패: $e')),
-                                  );
-                                  if (sheetContext.mounted) {
-                                    setSheetState(() => isSaving = false);
-                                  }
-                                }
-                              },
+                                      setSheetState(() => isSaving = true);
+                                      try {
+                                        final recommendation =
+                                            buildExerciseRecommendation(
+                                          primary: primary ?? '전신 피로',
+                                          detail: detail ?? '몸이 무겁고 무기력해요',
+                                          severity: option,
+                                        );
+                                        await _saveExerciseRecommendation(
+                                            recommendation);
+                                        if (sheetContext.mounted) {
+                                          Navigator.pop(sheetContext);
+                                        }
+                                        if (mounted) {
+                                          _openExerciseCamera(recommendation);
+                                        }
+                                      } catch (e) {
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content: Text('추천 저장 실패: $e')),
+                                        );
+                                        if (sheetContext.mounted) {
+                                          setSheetState(() => isSaving = false);
+                                        }
+                                      }
+                                    },
                             );
                           },
                         ),
@@ -949,109 +965,91 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  void _showExerciseRecommendationDialog(Map<String, dynamic> recommendation) {
-    final title = (recommendation['title'] ?? '추천 운동').toString();
-    final summary = (recommendation['summary'] ?? '').toString();
-    final reason = (recommendation['reason'] ?? '').toString();
-    final videoLink = (recommendation['videoLink'] ?? '').toString();
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('오늘의 맞춤 운동'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primaryDark,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                summary,
-                style:
-                const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                reason,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: AppColors.textSub,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                '추천 영상 링크',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                videoLink.isEmpty ? '영상 링크는 추후 연결 예정입니다.' : videoLink,
-                style: const TextStyle(fontSize: 14, color: AppColors.textSub),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _showExerciseSurveySheet();
-            },
-            child: const Text('다시 조사하기'),
-          ),
-          if (videoLink.isNotEmpty)
-            TextButton(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: videoLink));
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('영상 링크를 복사했어요.')),
-                );
-              },
-              child: const Text('링크 복사'),
-            ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildActivityTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle('활동 추천'),
+          _buildTabHeroCard(
+            eyebrow: '',
+            title: '가볍게 시작하는 활동 추천',
+            description: '',
+            icon: Icons.directions_run_rounded,
+            accent: const Color(0xFFE8F7EC),
+            iconColor: const Color(0xFF289A51),
+          ),
+          const SizedBox(height: 18),
           _buildInfoCard(
             icon: Icons.sports_tennis,
             title: '배드민턴',
             subtitle: '기본 규칙과 자세를 쉽게 배워보세요.',
-            onTap: () {},
+            accent: const Color(0xFFE7F7EB),
+            iconColor: const Color(0xFF289A51),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ActivityVideoListScreen(
+                    title: '배드민턴',
+                    description: '배드민턴 강의 영상을 보고 따라해 보세요.',
+                    icon: Icons.sports_tennis,
+                    accent: Color(0xFFE7F7EB),
+                    iconColor: Color(0xFF289A51),
+                    videos: [
+                      ActivityVideoItem(
+                        title: '배드민턴 강의 영상',
+                        youtubeUrl:
+                            'https://youtu.be/KharYkgsggk?si=eyGWoKnmrzaksFeK',
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           _buildInfoCard(
             icon: Icons.sports_golf,
             title: '골프',
             subtitle: '기초 스윙 방법과 준비 자세를 알려드려요.',
-            onTap: () {},
+            accent: const Color(0xFFE9F8F6),
+            iconColor: const Color(0xFF1E9A86),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ActivityVideoListScreen(
+                    title: '골프',
+                    description: '골프 강의 영상을 보고 차근차근 익혀보세요.',
+                    icon: Icons.sports_golf,
+                    accent: Color(0xFFE9F8F6),
+                    iconColor: Color(0xFF1E9A86),
+                    videos: [
+                      ActivityVideoItem(
+                        title: '골프 강의 영상',
+                        youtubeUrl:
+                            'https://youtu.be/v8azrl2h2-M?si=UeV8VquRyddxyMpv',
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           _buildInfoCard(
             icon: Icons.terrain,
             title: '등산',
             subtitle: '초보자 코스와 주의사항을 확인해 보세요.',
-            onTap: () {},
+            accent: const Color(0xFFF4F1FF),
+            iconColor: const Color(0xFF7B57D1),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const BeginnerHikingScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -1065,14 +1063,25 @@ class _MainScreenState extends State<MainScreen> {
     final bool hasConnectedSenior = connectedSeniorCode.trim().isNotEmpty;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle('내 정보'),
+          _buildTabHeroCard(
+            eyebrow: '나의 계정과 연결 정보',
+            title: '내 정보를 한눈에 확인해 보세요',
+            description: '프로필, 연결코드, 보호자 연동 상태를 깔끔하게 관리할 수 있어요.',
+            icon: Icons.account_circle_rounded,
+            accent: const Color(0xFFEAF9F0),
+            iconColor: AppColors.primaryDark,
+          ),
+          const SizedBox(height: 18),
           _buildInfoCard(
             icon: Icons.person_outline,
             title: '내 프로필',
             subtitle: '이름, 생년월일, 성별, 전화번호를 확인할 수 있어요.',
+            accent: const Color(0xFFEAF9F0),
+            iconColor: AppColors.primaryDark,
             onTap: _showMyProfileDialog,
           ),
           if (isSenior)
@@ -1082,6 +1091,8 @@ class _MainScreenState extends State<MainScreen> {
               subtitle: hasConnectionCode
                   ? '현재 코드: $connectionCode'
                   : '아직 등록된 연결코드가 없어요.',
+              accent: const Color(0xFFFFF2E9),
+              iconColor: const Color(0xFFE16A56),
               onTap: hasConnectionCode ? _showConnectionCodeDialog : null,
             ),
           if (isGuardian)
@@ -1091,6 +1102,8 @@ class _MainScreenState extends State<MainScreen> {
               subtitle: hasConnectedSenior
                   ? '연결됨: $connectedSeniorName ($connectedSeniorCode)'
                   : '어르신 연결코드를 입력해 연결해 주세요.',
+              accent: const Color(0xFFF2ECFF),
+              iconColor: const Color(0xFF7B57D1),
               onTap: _showGuardianCodeInputDialog,
             ),
           if (isGuardian && hasConnectedSenior)
@@ -1098,6 +1111,8 @@ class _MainScreenState extends State<MainScreen> {
               icon: Icons.badge_outlined,
               title: '연결된 어르신 정보',
               subtitle: '연결된 어르신 개인정보를 확인할 수 있어요.',
+              accent: const Color(0xFFE7F8F5),
+              iconColor: const Color(0xFF1E9A86),
               onTap: _showConnectedSeniorProfileDialog,
             ),
         ],
@@ -1262,7 +1277,7 @@ class _MainScreenState extends State<MainScreen> {
       }
 
       final seniorName =
-      _normalizeUserName(seniorData['name'], seniorData['displayName']);
+          _normalizeUserName(seniorData['name'], seniorData['displayName']);
 
       await _firestore.collection('users').doc(widget.socialId!).set({
         'connectedSeniorCode': code,
@@ -1343,7 +1358,7 @@ class _MainScreenState extends State<MainScreen> {
       final seniorBirthDate = (data['birthDate'] ?? '').toString();
       final seniorGender = (data['gender'] ?? '').toString();
       final seniorPhone =
-      PhoneUtils.formatKoreanPhone((data['phone'] ?? '').toString());
+          PhoneUtils.formatKoreanPhone((data['phone'] ?? '').toString());
       final seniorConnectionCode = (data['connectionCode'] ?? '').toString();
 
       if (!mounted) return;
@@ -1351,7 +1366,7 @@ class _MainScreenState extends State<MainScreen> {
         context: context,
         builder: (_) => AlertDialog(
           shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text('연결된 어르신 정보'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1396,7 +1411,7 @@ class _MainScreenState extends State<MainScreen> {
               label,
               style: const TextStyle(
                 fontSize: 16,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w900,
                 color: AppColors.textSub,
               ),
             ),
@@ -1406,7 +1421,7 @@ class _MainScreenState extends State<MainScreen> {
               value,
               style: const TextStyle(
                 fontSize: 17,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w900,
                 color: AppColors.textMain,
               ),
             ),
@@ -1416,18 +1431,74 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildTabHeroCard({
+    required String eyebrow,
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color accent,
+    required Color iconColor,
+  }) {
     return Container(
-      alignment: Alignment.centerLeft,
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-        ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+      decoration: _homeCardDecoration(
+        colors: const [
+          Color(0xFFFDFEFC),
+          Color(0xFFEFF8F1),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              color: accent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 34),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (eyebrow.isNotEmpty) const SizedBox(height: 6),
+                if (eyebrow.isNotEmpty)
+                  Text(
+                    eyebrow,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSub,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    height: 1.2,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textMain,
+                  ),
+                ),
+                if (description.isNotEmpty) const SizedBox(height: 8),
+                if (description.isNotEmpty)
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.45,
+                      color: AppColors.textSub,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1436,29 +1507,34 @@ class _MainScreenState extends State<MainScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
+    required Color accent,
+    required Color iconColor,
     VoidCallback? onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(24),
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.fromLTRB(18, 18, 16, 18),
+        decoration: _homeCardDecoration(
+          colors: const [
+            Color(0xFFFFFFFF),
+            Color(0xFFFAFCFA),
           ],
         ),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.primary, size: 34),
+            Container(
+              width: 62,
+              height: 62,
+              decoration: BoxDecoration(
+                color: accent,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 32),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -1467,25 +1543,664 @@ class _MainScreenState extends State<MainScreen> {
                   Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textMain,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     subtitle,
                     style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.black54,
+                      fontSize: 14,
+                      height: 1.45,
+                      color: AppColors.textSub,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: accent,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.chevron_right_rounded,
+                color: iconColor,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+class ActivityVideoListScreen extends StatelessWidget {
+  final String title;
+  final String description;
+  final IconData icon;
+  final Color accent;
+  final Color iconColor;
+  final List<ActivityVideoItem> videos;
+
+  const ActivityVideoListScreen({
+    super.key,
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.accent,
+    required this.iconColor,
+    required this.videos,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: const Color(0xFFE3ECE4)),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFFDFEFC),
+                  Color(0xFFEFF8F1),
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFBCCDBF).withValues(alpha: 0.18),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: accent,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: iconColor, size: 34),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          height: 1.2,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textMain,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.45,
+                          color: AppColors.textSub,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          ...videos.map(
+            (video) => _ActivityVideoCard(
+              title: video.title,
+              youtubeUrl: video.youtubeUrl,
+              accent: accent,
+              iconColor: iconColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActivityVideoCard extends StatelessWidget {
+  final String title;
+  final String youtubeUrl;
+  final Color accent;
+  final Color iconColor;
+
+  const _ActivityVideoCard({
+    required this.title,
+    required this.youtubeUrl,
+    required this.accent,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(24),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ExerciseVideoPlayerScreen(
+              video: ExerciseVideoData(
+                title: title,
+                youtubeUrl: youtubeUrl,
+              ),
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.fromLTRB(18, 18, 16, 18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFE3ECE4)),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFFFFFFF),
+              Color(0xFFFAFCFA),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFBCCDBF).withValues(alpha: 0.16),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 62,
+              height: 62,
+              decoration: BoxDecoration(
+                color: accent,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.play_circle_fill_rounded,
+                color: iconColor,
+                size: 34,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textMain,
+                ),
+              ),
+            ),
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: accent,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.chevron_right_rounded,
+                color: iconColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ActivityVideoItem {
+  final String title;
+  final String youtubeUrl;
+
+  const ActivityVideoItem({
+    required this.title,
+    required this.youtubeUrl,
+  });
+}
+
+class BeginnerHikingScreen extends StatefulWidget {
+  const BeginnerHikingScreen({super.key});
+
+  @override
+  State<BeginnerHikingScreen> createState() => _BeginnerHikingScreenState();
+}
+
+class _BeginnerHikingScreenState extends State<BeginnerHikingScreen> {
+  static const List<BeginnerHikingCourse> _courses = [
+    BeginnerHikingCourse(
+      name: '남산',
+      courseTitle: '남산 순환 초보 코스',
+      summary: '계단이 많지 않고 산책하듯 걷기 좋아요.',
+      difficulty: '쉬움',
+      duration: '40분',
+      location: '서울 중구',
+      latLng: LatLng(37.5512, 126.9882),
+    ),
+    BeginnerHikingCourse(
+      name: '아차산',
+      courseTitle: '아차산 입구 초보 코스',
+      summary: '짧게 오르기 좋고 전망 보는 재미가 있어요.',
+      difficulty: '쉬움',
+      duration: '50분',
+      location: '서울 광진구',
+      latLng: LatLng(37.5662, 127.1031),
+    ),
+    BeginnerHikingCourse(
+      name: '인왕산',
+      courseTitle: '인왕산 초입 완만 코스',
+      summary: '완만한 구간 위주로 천천히 오르기 좋아요.',
+      difficulty: '보통',
+      duration: '60분',
+      location: '서울 종로구',
+      latLng: LatLng(37.5804, 126.9604),
+    ),
+  ];
+
+  GoogleMapController? _mapController;
+  int _selectedIndex = 0;
+
+  BeginnerHikingCourse get _selectedCourse => _courses[_selectedIndex];
+
+  Set<Marker> get _markers {
+    return _courses
+        .map(
+          (course) => Marker(
+            markerId: MarkerId(course.name),
+            position: course.latLng,
+            infoWindow: InfoWindow(
+              title: course.name,
+              snippet: course.courseTitle,
+            ),
+            onTap: () {
+              final index = _courses.indexOf(course);
+              if (index != -1) {
+                _selectCourse(index);
+              }
+            },
+          ),
+        )
+        .toSet();
+  }
+
+  Future<void> _selectCourse(int index) async {
+    setState(() => _selectedIndex = index);
+    final course = _courses[index];
+    await _mapController?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(target: course.latLng, zoom: 13.8),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedCourse = _selectedCourse;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('초보자용 코스'),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFF8FBF8),
+              Color(0xFFF1F6F2),
+            ],
+          ),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: const Color(0xFFE3ECE4)),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFFFFFFF),
+                    Color(0xFFF1ECFF),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFBCCDBF).withValues(alpha: 0.18),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 68,
+                    height: 68,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF2ECFF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.terrain_rounded,
+                      color: Color(0xFF7B57D1),
+                      size: 34,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '초보자용 등산 코스',
+                          style: TextStyle(
+                            fontSize: 24,
+                            height: 1.2,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.textMain,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '가고 싶은 산을 고르면 지도와 코스를 함께 볼 수 있어요.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.45,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.textSub,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              height: 52,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _courses.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final course = _courses[index];
+                  final selected = index == _selectedIndex;
+                  return ChoiceChip(
+                    selected: selected,
+                    label: Text(
+                      course.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: selected ? Colors.white : AppColors.textMain,
+                      ),
+                    ),
+                    selectedColor: const Color(0xFF7B57D1),
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: AppColors.border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    onSelected: (_) => _selectCourse(index),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(30),
+              child: SizedBox(
+                height: 250,
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: selectedCourse.latLng,
+                    zoom: 13.2,
+                  ),
+                  markers: _markers,
+                  zoomControlsEnabled: false,
+                  myLocationButtonEnabled: false,
+                  onMapCreated: (controller) => _mapController = controller,
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            ...List.generate(
+              _courses.length,
+              (index) {
+                final course = _courses[index];
+                final selected = index == _selectedIndex;
+                return _BeginnerHikingCourseCard(
+                  course: course,
+                  selected: selected,
+                  onTap: () => _selectCourse(index),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BeginnerHikingCourseCard extends StatelessWidget {
+  final BeginnerHikingCourse course;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _BeginnerHikingCourseCard({
+    required this.course,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: selected ? const Color(0xFF7B57D1) : const Color(0xFFE3ECE4),
+          width: selected ? 2 : 1,
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: selected
+              ? const [
+                  Color(0xFFFFFFFF),
+                  Color(0xFFF4F0FF),
+                ]
+              : const [
+                  Color(0xFFFFFFFF),
+                  Color(0xFFFAFCFA),
+                ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFBCCDBF).withValues(alpha: 0.14),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 16, 18),
+            child: Row(
+              children: [
+                Container(
+                  width: 62,
+                  height: 62,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? const Color(0xFFEDE5FF)
+                        : const Color(0xFFF2ECFF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.landscape_rounded,
+                    color: Color(0xFF7B57D1),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        course.courseTitle,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textMain,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        course.summary,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          height: 1.45,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textSub,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _HikingInfoChip(label: course.location),
+                          _HikingInfoChip(label: '난이도 ${course.difficulty}'),
+                          _HikingInfoChip(label: '${course.duration} 코스'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? const Color(0xFFEDE5FF)
+                        : const Color(0xFFF2ECFF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF7B57D1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HikingInfoChip extends StatelessWidget {
+  final String label;
+
+  const _HikingInfoChip({
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE3ECE4)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+          color: AppColors.textSub,
+        ),
+      ),
+    );
+  }
+}
+
+class BeginnerHikingCourse {
+  final String name;
+  final String courseTitle;
+  final String summary;
+  final String difficulty;
+  final String duration;
+  final String location;
+  final LatLng latLng;
+
+  const BeginnerHikingCourse({
+    required this.name,
+    required this.courseTitle,
+    required this.summary,
+    required this.difficulty,
+    required this.duration,
+    required this.location,
+    required this.latLng,
+  });
 }

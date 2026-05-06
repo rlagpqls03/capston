@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   static const Color primary = Color(0xFF1FAE57);
@@ -11,11 +12,14 @@ class AppColors {
   static const Color border = Color(0xFFE3EAE5);
 }
 
+class AppFontSettings {
+  static final ValueNotifier<double> scale = ValueNotifier<double>(1.1);
+}
+
 class AppTheme {
   static ThemeData get light {
     final base = ThemeData(
       useMaterial3: true,
-      fontFamily: 'sans-serif',
       colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.primary,
@@ -24,18 +28,64 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
     );
 
+    final roundedTextTheme = GoogleFonts.notoSansKrTextTheme(
+      base.textTheme,
+    ).apply(
+      bodyColor: AppColors.textMain,
+      displayColor: AppColors.textMain,
+    );
+
     return base.copyWith(
-      appBarTheme: const AppBarTheme(
+      textTheme: roundedTextTheme.copyWith(
+        bodyLarge: roundedTextTheme.bodyLarge?.copyWith(
+          fontSize: 21,
+          fontWeight: FontWeight.w800,
+        ),
+        bodyMedium: roundedTextTheme.bodyMedium?.copyWith(
+          fontSize: 19,
+          fontWeight: FontWeight.w800,
+        ),
+        bodySmall: roundedTextTheme.bodySmall?.copyWith(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+        ),
+        titleLarge: roundedTextTheme.titleLarge?.copyWith(
+          fontSize: 24,
+          fontWeight: FontWeight.w900,
+        ),
+        titleMedium: roundedTextTheme.titleMedium?.copyWith(
+          fontSize: 21,
+          fontWeight: FontWeight.w900,
+        ),
+        titleSmall: roundedTextTheme.titleSmall?.copyWith(
+          fontSize: 19,
+          fontWeight: FontWeight.w800,
+        ),
+        labelLarge: roundedTextTheme.labelLarge?.copyWith(
+          fontSize: 19,
+          fontWeight: FontWeight.w900,
+        ),
+        labelMedium: roundedTextTheme.labelMedium?.copyWith(
+          fontSize: 17,
+          fontWeight: FontWeight.w800,
+        ),
+        labelSmall: roundedTextTheme.labelSmall?.copyWith(
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      primaryTextTheme: roundedTextTheme,
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
+        titleTextStyle: GoogleFonts.notoSansKr(
+          fontSize: 28,
+          fontWeight: FontWeight.w900,
           color: AppColors.textMain,
         ),
-        iconTheme: IconThemeData(color: AppColors.textMain, size: 28),
+        iconTheme: const IconThemeData(color: AppColors.textMain, size: 28),
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
@@ -49,16 +99,17 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         hintStyle: const TextStyle(
-          fontSize: 18,
+          fontSize: 20,
           color: AppColors.textSub,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w700,
         ),
         labelStyle: const TextStyle(
-          fontSize: 17,
+          fontSize: 19,
           color: AppColors.textSub,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w800,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -79,8 +130,8 @@ class AppTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           textStyle: const TextStyle(
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -93,8 +144,8 @@ class AppTheme {
           minimumSize: const Size(0, 48),
           side: const BorderSide(color: AppColors.border),
           textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -106,7 +157,7 @@ class AppTheme {
         contentTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 16,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w800,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
@@ -115,8 +166,10 @@ class AppTheme {
         backgroundColor: Colors.white,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSub,
-        selectedLabelStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-        unselectedLabelStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        selectedLabelStyle:
+            TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+        unselectedLabelStyle:
+            TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         type: BottomNavigationBarType.fixed,
       ),
     );

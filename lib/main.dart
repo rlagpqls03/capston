@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
@@ -11,7 +11,6 @@ import 'theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  // 카카오 SDK 초기화
   kakao.KakaoSdk.init(nativeAppKey: '9afedfa75e5eda578ba61766640dbee9');
 
   runApp(const MyApp());
@@ -35,28 +34,26 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '느티나무',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: StreamBuilder<auth.User?>(
-        stream: AuthService().userStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+    return ValueListenableBuilder<double>(
+      valueListenable: AppFontSettings.scale,
+      builder: (context, fontScale, _) {
+        return MaterialApp(
+          title: '느티나무',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          builder: (context, child) {
+            final mediaQuery = MediaQuery.of(context);
+            return MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(fontScale),
               ),
+              child: child ?? const SizedBox.shrink(),
             );
-          }
-
-          final user = snapshot.data;
-          if (user == null) return LoginScreen();
-
-          return FutureBuilder<Widget>(
-            future: _buildHomeForSignedInUser(user),
-            builder: (context, homeSnapshot) {
-              if (homeSnapshot.connectionState == ConnectionState.waiting) {
+          },
+          home: StreamBuilder<auth.User?>(
+            stream: AuthService().userStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Scaffold(
                   body: Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
@@ -64,14 +61,29 @@ class MyApp extends StatelessWidget {
                 );
               }
 
-              if (homeSnapshot.hasData) return homeSnapshot.data!;
-              return LoginScreen();
+              final user = snapshot.data;
+              if (user == null) return LoginScreen();
+
+              return FutureBuilder<Widget>(
+                future: _buildHomeForSignedInUser(user),
+                builder: (context, homeSnapshot) {
+                  if (homeSnapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(
+                      body: Center(
+                        child:
+                            CircularProgressIndicator(color: AppColors.primary),
+                      ),
+                    );
+                  }
+
+                  if (homeSnapshot.hasData) return homeSnapshot.data!;
+                  return LoginScreen();
+                },
+              );
             },
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
-
-
