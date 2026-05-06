@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../models/home_search_item.dart';
 import 'login_screen.dart';
 import 'exercise_screen.dart';
+import 'exercise_camera_screen.dart';
 import 'hospital_finder_screen.dart';
 import 'job_screen.dart';
 import 'health_record_screen.dart';
@@ -752,8 +753,7 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-    _showExerciseRecommendationDialog(
-        Map<String, dynamic>.from(exerciseRecommendation!));
+    _openExerciseCamera(Map<String, dynamic>.from(exerciseRecommendation!));
   }
 
   Future<void> _showExerciseSurveySheet() async {
@@ -780,7 +780,7 @@ class _MainScreenState extends State<MainScreen> {
               options = exerciseDetailOptions[primary] ?? [];
             } else if (step == 2) {
               question = '불편함 정도는 어느 정도인가요?';
-              options = ['가벼운 편이에요', '중간 정도예요', '심한 편이에요'];
+              options = exerciseSeverityOptions;
             }
 
             return SafeArea(
@@ -853,8 +853,7 @@ class _MainScreenState extends State<MainScreen> {
                                     Navigator.pop(sheetContext);
                                   }
                                   if (mounted) {
-                                    _showExerciseRecommendationDialog(
-                                        recommendation);
+                                    _openExerciseCamera(recommendation);
                                   }
                                 } catch (e) {
                                   if (!mounted) return;
@@ -888,6 +887,15 @@ class _MainScreenState extends State<MainScreen> {
           },
         );
       },
+    );
+  }
+
+  void _openExerciseCamera(Map<String, dynamic> recommendation) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ExerciseCameraScreen(recommendation: recommendation),
+      ),
     );
   }
 
