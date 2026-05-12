@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.capstone"
-        minSdk = flutter.minSdkVersion
+        minSdk = 24
         targetSdk = 36
         versionCode = flutter.versionCode.toInt()
         versionName = flutter.versionName
